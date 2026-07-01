@@ -1,0 +1,4 @@
+# Guardrails — error-born rules (Anti-Fragility Loop)
+# Format: - [G-NNN] <imperative rule> — cause: <what broke> (YYYY-MM-DD)
+- [G-000] HARD BAN: the Supabase project "yogastasis" is OFF-LIMITS — never call ANY tool (MCP/CLI/SQL/dashboard) against its project id, never read its config, logs, tables, or keys. All Supabase operations MUST target the athlete-os project id explicitly — cause: standing owner instruction, not error-born (2026-07-01)
+- [G-001] After ANY config auto-migration (e.g. `biome migrate`), diff the config and re-verify semantics with a known-bad probe file (the check must EXIT non-zero — a printed warning is NOT enough, warnings don't fail `biome check`) before trusting a green check — cause: biome migrate 2.5.1 rewrote rules `"recommended": true` → `"preset": "none"`, silently disabling all lints while `verify` stayed green (2026-07-01)

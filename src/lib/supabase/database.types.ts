@@ -283,7 +283,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      save_daily_checkin: {
+        Args: { checkin: Json; observations: Json };
+        Returns: string;
+      };
+      save_training_session: {
+        Args: { observations: Json; session: Json };
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;

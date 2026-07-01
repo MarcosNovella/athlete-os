@@ -1,65 +1,103 @@
-import Image from 'next/image';
+import { logout } from '@/core/auth/actions';
+import { OnboardingForm } from '@/core/subjects/OnboardingForm';
+import { getCurrentSubject } from '@/core/subjects/service';
+import { addDaysIso, localDateInTz } from '@/lib/dates';
+import { createClient } from '@/lib/supabase/server';
+import { CheckInForm } from '@/modules/fitness/capture/CheckInForm';
+import { SessionForm } from '@/modules/fitness/capture/SessionForm';
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{' '}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{' '}
-            or the{' '}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{' '}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+export default async function TodayPage() {
+  const subject = await getCurrentSubject();
+
+  if (!subject) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center p-6">
+        <OnboardingForm />
       </main>
-    </div>
+    );
+  }
+
+  const today = localDateInTz(subject.timezone);
+  const yesterday = addDaysIso(today, -1);
+  const supabase = await createClient();
+
+  const [todayCheckin, yesterdayCheckin, todaySessions] = await Promise.all([
+    supabase
+      .from('daily_checkins')
+      .select('sleep_hours, sleep_quality, readiness, soreness, stress')
+      .eq('subject_id', subject.id)
+      .eq('date', today)
+      .maybeSingle(),
+    supabase
+      .from('daily_checkins')
+      .select('sleep_hours, sleep_quality, readiness, soreness, stress')
+      .eq('subject_id', subject.id)
+      .eq('date', yesterday)
+      .maybeSingle(),
+    supabase
+      .from('training_sessions')
+      .select('id, modality, duration_min, srpe, load, notes')
+      .eq('subject_id', subject.id)
+      .eq('date', today)
+      .order('started_at', { ascending: true }),
+  ]);
+
+  const sessions = todaySessions.data ?? [];
+  const dailyLoad = sessions.reduce((sum, s) => sum + (s.load ?? 0), 0);
+
+  return (
+    <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
+      <header className="flex items-center justify-between pt-2">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Hola, {subject.display_name}</h1>
+          <p className="text-sm text-zinc-500">{today}</p>
+        </div>
+        <form action={logout}>
+          <button
+            type="submit"
+            className="text-sm text-zinc-400 underline-offset-2 hover:underline"
+          >
+            Salir
+          </button>
+        </form>
+      </header>
+
+      <CheckInForm
+        todayDate={today}
+        yesterdayDate={yesterday}
+        todayInitial={todayCheckin.data}
+        yesterdayInitial={yesterdayCheckin.data}
+        defaultSleepHours={yesterdayCheckin.data?.sleep_hours ?? 8}
+      />
+
+      <SessionForm todayDate={today} yesterdayDate={yesterday} />
+
+      <section className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="font-semibold">Sesiones de hoy</h2>
+          <span className="text-sm text-zinc-500">
+            carga total: <span className="font-semibold tabular-nums">{dailyLoad} AU</span>
+          </span>
+        </div>
+        {sessions.length === 0 ? (
+          <p className="text-sm text-zinc-400">Todavía no registraste sesiones hoy.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-100">
+            {sessions.map((s) => (
+              <li key={s.id} className="flex items-center justify-between py-2.5">
+                <div>
+                  <span className="font-medium capitalize">{s.modality}</span>
+                  <span className="ml-2 text-sm text-zinc-500">
+                    {s.duration_min} min · RPE {s.srpe}
+                  </span>
+                  {s.notes ? <p className="text-xs text-zinc-400">{s.notes}</p> : null}
+                </div>
+                <span className="font-semibold tabular-nums">{s.load ?? 0} AU</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
   );
 }

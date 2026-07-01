@@ -1,4 +1,5 @@
-import { addDaysIso } from '@/lib/dates';
+// Relative import: this pure module is also consumed by scripts/ outside Next (ADR-016).
+import { addDaysIso } from '../../../lib/dates';
 
 /**
  * Training-load math (ADR-012). Pure functions over daily series.

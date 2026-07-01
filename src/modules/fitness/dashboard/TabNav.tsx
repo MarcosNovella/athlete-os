@@ -1,7 +1,9 @@
 import Link from 'next/link';
 
-export function TabNav({ active }: { active: 'today' | 'trends' }) {
-  const tab = (href: string, key: 'today' | 'trends', label: string) => (
+type Tab = 'today' | 'trends' | 'coach';
+
+export function TabNav({ active }: { active: Tab }) {
+  const tab = (href: string, key: Tab, label: string) => (
     <Link
       href={href}
       className={`flex-1 rounded-full py-2 text-center text-sm font-medium ${
@@ -15,6 +17,7 @@ export function TabNav({ active }: { active: 'today' | 'trends' }) {
     <nav className="flex gap-1 rounded-full bg-zinc-100 p-1">
       {tab('/', 'today', 'Hoy')}
       {tab('/trends', 'trends', 'Tendencias')}
+      {tab('/coach', 'coach', 'Coach')}
     </nav>
   );
 }

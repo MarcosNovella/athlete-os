@@ -1,4 +1,5 @@
-import { addDaysIso } from '@/lib/dates';
+// Relative import: this pure module is also consumed by scripts/ outside Next (ADR-016).
+import { addDaysIso } from '../../../lib/dates';
 import { BASELINE_MIN_COUNT, type DatedValue, trailingBaseline } from './baselines';
 import { type DayValue, dailyLoadSeries, ewmaSeries, monotony, strain } from './load';
 import type { ObservationLite } from './snapshot';

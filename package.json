@@ -9,7 +9,8 @@
     "test": "vitest",
     "verify": "biome check . && tsc --noEmit && vitest run",
     "fix": "biome check --write .",
-    "db:types": "supabase gen types typescript --project-id zidgpigxtuzpnjvinidx --schema public > src/lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --project-id zidgpigxtuzpnjvinidx --schema public > src/lib/supabase/database.types.ts",
+    "briefing": "tsx scripts/coach-briefing.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -30,6 +31,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5",
     "vitest": "^4.1.9"
   }

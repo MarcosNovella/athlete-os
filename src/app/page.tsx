@@ -5,6 +5,8 @@ import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { CheckInForm } from '@/modules/fitness/capture/CheckInForm';
 import { SessionForm } from '@/modules/fitness/capture/SessionForm';
+import { TodayStatePanel } from '@/modules/fitness/dashboard/TodayStatePanel';
+import { getEngineSnapshot } from '@/modules/fitness/engine/service';
 
 export default async function TodayPage() {
   const subject = await getCurrentSubject();
@@ -21,7 +23,8 @@ export default async function TodayPage() {
   const yesterday = addDaysIso(today, -1);
   const supabase = await createClient();
 
-  const [todayCheckin, yesterdayCheckin, todaySessions] = await Promise.all([
+  const [snapshot, todayCheckin, yesterdayCheckin, todaySessions] = await Promise.all([
+    getEngineSnapshot(subject),
     supabase
       .from('daily_checkins')
       .select('sleep_hours, sleep_quality, readiness, soreness, stress')
@@ -61,6 +64,8 @@ export default async function TodayPage() {
           </button>
         </form>
       </header>
+
+      <TodayStatePanel snapshot={snapshot} />
 
       <CheckInForm
         todayDate={today}

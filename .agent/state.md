@@ -1,6 +1,8 @@
 # State
 Goal: MVP "Readiness Loop" — capture (check-in + sessions) → deterministic engine → dashboards → AI coach. Full design: C:\Users\Marcos\.claude\plans\quiero-que-trabajemos-juntos-pure-hammock.md
-Last done: substrate schema SHIPPED — 2 migrations authored (file-first) AND applied to cloud (subjects, metrics registry seeded w/ 14 MVP metrics, observations spine, daily_checkins, training_sessions, insights; RLS owner-model on all; security advisor: 0 findings). database.types.ts generated; typed clients; verify GREEN; commits 9838034 (scaffold) + 77a0ac6 (schema).
-Next: auth flow + subject onboarding (2 users), then capture UX (check-in + session forms) with the app-layer emission service (entity + observations in one transaction, ADR-011).
+Last done: CAPTURE VERTICAL SLICE shipped + E2E-verified (Playwright headless, mobile viewport): auth (login-only app) + proxy session gate + onboarding + check-in/session tap-first forms + atomic save/re-emit RPCs (migration 3) + spine emission CONFIRMED in DB (8 emitted obs, correct values/linkage). verify GREEN (15 tests). 3 migrations file-first & applied.
+Next: deterministic engine (modules/fitness/engine): EWMA 7d/28d, ACWR bands-as-flags, monotony/strain, 28d baselines + z-flags, progressive-unlock gating (ADR-012) → then dashboards ("today state" reward panel first).
 Supabase: CLOUD project "athlete-os" id=zidgpigxtuzpnjvinidx (org MarcosNovella, sa-east-1, free tier). HARD BAN per G-000: never touch project "yogastasis".
-Open questions: .env.local blocked until Marcos updates ~/.claude/hooks/guard.mjs (removes stale .env write-deny; R3 now delegates .env to agent).
+E2E user for future browser tests: marcosnovella99+e2e@gmail.com / e2e-Password-123 (subject "E2E Tester", own silo — does not pollute real data; delete anytime via auth.users cascade).
+Real accounts CREATED + login-verified (2026-07-01): marcosnovella99@gmail.com and thomasnovella12@gmail.com (SQL-seeded into auth.users — Supabase built-in mailer rate limit blocks signUp API; passwords known to the owners, NOT stored here). No public signup by design.
+Open questions: -

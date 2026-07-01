@@ -1,6 +1,7 @@
 import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
-import { computeSnapshot, type EngineSnapshot } from './snapshot';
+import { computeSnapshot, type EngineSnapshot, type ObservationLite } from './snapshot';
+import { computeTrends, type TrendsData } from './trends';
 
 const ENGINE_METRICS = ['session_load', 'readiness', 'sleep_duration'];
 
@@ -11,10 +12,11 @@ const ENGINE_METRICS = ['session_load', 'readiness', 'sleep_duration'];
  */
 const WINDOW_DAYS = 90;
 
-export async function getEngineSnapshot(subject: {
-  id: string;
-  timezone: string;
-}): Promise<EngineSnapshot> {
+type EngineSubject = { id: string; timezone: string };
+
+async function fetchEngineObservations(
+  subject: EngineSubject,
+): Promise<{ obs: ObservationLite[]; today: string }> {
   const today = localDateInTz(subject.timezone);
   const from = addDaysIso(today, -WINDOW_DAYS);
 
@@ -29,5 +31,15 @@ export async function getEngineSnapshot(subject: {
     .order('effective_date', { ascending: true });
   if (error) throw new Error(`engine observations fetch failed: ${error.message}`);
 
-  return computeSnapshot(data ?? [], today);
+  return { obs: data ?? [], today };
+}
+
+export async function getEngineSnapshot(subject: EngineSubject): Promise<EngineSnapshot> {
+  const { obs, today } = await fetchEngineObservations(subject);
+  return computeSnapshot(obs, today);
+}
+
+export async function getTrends(subject: EngineSubject): Promise<TrendsData> {
+  const { obs, today } = await fetchEngineObservations(subject);
+  return computeTrends(obs, today);
 }

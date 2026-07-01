@@ -5,6 +5,7 @@ import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { CheckInForm } from '@/modules/fitness/capture/CheckInForm';
 import { SessionForm } from '@/modules/fitness/capture/SessionForm';
+import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { TodayStatePanel } from '@/modules/fitness/dashboard/TodayStatePanel';
 import { getEngineSnapshot } from '@/modules/fitness/engine/service';
 
@@ -64,6 +65,8 @@ export default async function TodayPage() {
           </button>
         </form>
       </header>
+
+      <TabNav active="today" />
 
       <TodayStatePanel snapshot={snapshot} />
 

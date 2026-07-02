@@ -13,7 +13,13 @@ Log:
 
 - 2026-07-02 Session 6: DISCUSSION ONLY (no code) — post-MVP direction. Wrote .agent/roadmap.md: (A) interpretation-layer spec (bands in engine not UI; ACWR gauge, monotony/strain bands + cap, z magnitude tiers, relative % framing, ACWR ribbon chart, weekly-table tinting, tappable info glossary for all acronyms) + (B) V2 sequencing APPROVED by Marcos (outcomes → passive import → pattern-candidates; nutrition ordinal-only) + (C) methodology: seed-first validation — extend ADR-020 demo narratives per feature so time-gated unlocks never block dev. Wearables answered: Marcos has Apple Watch S10 now; BOTH getting Whoop soon → Whoop API = primary V2.2 target.
 
-Last done: roadmap.md finalized (§A spec + §B approved sequencing + §C seed-first methodology); ready to start building V2.0.
+- 2026-07-02 Session 7: HARVEST — built the global `/harvest` skill (~/.claude/commands/harvest.md, per the D2 design from the 2026-06-26 knowledge-loop session) + ran it inaugurally here: journal.md backfilled with Sessions 2-6 episodes, .agent/skills.md created (3 playbooks: seed-demo-data, weekly-coach-run, deploy), global candidate tier seeded at ~/.claude/knowledge/candidates.md (C-001..C-008 from G-001..G-007 + ADR-020 seed-first, all seen_in:[athlete-os], none promotable yet).
+
+- 2026-07-02 Session 7 (cont.): built the remaining knowledge-loop verbs — `/query` (query-file-back; cross-project pages → ~/.claude/knowledge/pages/ + PAGES.md) and `/lint-knowledge` (cross-scope lint). Inaugural lint: all scopes clean (indexes, formats, provenance, yogastasis ban contexts); its one false positive (bash backslash-escapes-$) became G-008 + candidate C-009 via the §5 loop. Query retrieval smoke: GoTrue question hit C-007/G-007. ≥2 promotion bar SETTLED by Marcos.
+
+- 2026-07-02 Session 7 (cont. 2): point 5 of the knowledge loop — /scaffold now has an "Inherit knowledge" step (imports stack-applicable candidates into the new repo's guardrails.md `## Inherited` section + page pointers in skills.md; inheritance ≠ seen_in evidence). /lint-knowledge + /harvest updated to recognize the inherited marker. The 2026-06-26 6-point design is fully closed.
+
+Last done: knowledge loop complete (all verbs + scaffold inheritance); journal harvested through Session 6.
 
 Next: (a) BUILD V2.0 interpretation layer per roadmap.md §A (incl. info glossary), validated against the demo subject per §C; (b) first real /coach run once ~1wk of real data; (c) synthesis reminder automation. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
 

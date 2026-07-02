@@ -47,3 +47,66 @@ blocked me from weakening my own guard hook).
 State at close: pnpm verify GREEN (49 tests, 10 files) + E2E PASS across the 3 tabs.
 Open: first real /coach run needs ~1wk of data; PWA manifest/offline pending (D12 gap);
 Vercel deploy declined for now; DoD gate = 4-week capture habit (both users).
+
+## Session 2 — 2026-07-01 — PWA/offline + first production deploy
+(backfilled at harvest from state.md/decisions.md/guardrails.md)
+
+Arc: closed the last D12 gap (offline-capable PWA at zero deps, ADR-017: hand-rolled sw.js,
+IndexedDB write queue, <OfflineSync/> FIFO replay, terminal server rejections), then first
+Vercel production deploy (ADR-018: CLI from local, committed .env.production with
+publishable-only values). LIVE at https://athlete-os-pink.vercel.app, prod smoke 4/4.
+verify GREEN (53 tests) + offline E2E 8/8 on the prod build.
+
+Errors → guardrails born:
+- G-005 netstat cleanup parsed TIME_WAIT rows carrying PID 0/4 and taskkill'd system PIDs
+  (denied, no harm) — filter to LISTENING rows FIRST.
+
+## Session 3 — 2026-07-02 — Visual redesign "vestuario antes del amanecer"
+(backfilled at harvest)
+
+Arc: full reskin per ADR-019 — dark-first green-cast ink + single sodium-amber accent,
+Barlow (Condensed) + Geist Mono, pulse-line signature mark, tokens in @theme so reskin =
+token swap; sw bumped to v2. verify GREEN (53) + offline E2E 8/8 on prod build. App
+installed on BOTH phones; Thomas logged in → DoD 4-week clock running.
+
+Errors → guardrails born:
+- G-006 batch regex reskin through PowerShell 5.1 Get-Content/Set-Content mojibaked
+  BOM-less UTF-8 accents across 3 files — never round-trip source through PS5.1 text
+  cmdlets; Edit tool or [IO.File]::ReadAllText/WriteAllText with explicit UTF8.
+
+## Session 4 — 2026-07-02 — Synthetic 28-day seed for a disposable demo subject
+(backfilled at harvest)
+
+Arc: ADR-020 — scripts/seed.ts + `pnpm seed` (--dry-run previews the REAL computeSnapshot)
+backfills a 28-day narrative (21d baseline → 7d overreaching) for demo@athleteos.app
+through the REAL write path (emission.ts + save_* RPCs, anon key, RLS — no service-role).
+Loaded 28 checkins / 23 sessions / 209 observations; re-run idempotent (same counts, 0
+dupes). In-app: all unlocks open, all 3 flags fire (ACWR 1.55, readiness z -2.78, monotony
+38.39). Keeps the DoD clock clean (real users untouched). verify GREEN (53).
+
+Errors → guardrails born:
+- G-007 hand-crafted auth.users INSERT made GoTrue 500 on sign-in until ALL token/change
+  varchar columns were set to '' (+ matching auth.identities row; identities.email is
+  GENERATED).
+
+## Session 5 — 2026-07-02 — First /coach run + git remote + push-to-deploy
+(backfilled at harvest)
+
+Arc: ran /coach against the seeded demo subject — deterministic briefing via `pnpm
+briefing`, reasoned, wrote back 1 weekly_synthesis + 1 hypothesis, both render in the Coach
+tab (ADR-016 loop closed end-to-end at $0). Fixed pre-existing G-006-residue mojibake in
+coach/page.tsx + OnboardingForm.tsx. Merged feat/test-data-seed → main (ff); ADR-021:
+created GitHub repo MarcosNovella/athlete-os, connected Vercel via dashboard OAuth (MCP
+can't do it headlessly) — push to main = auto prod deploy, branches = previews.
+
+## Session 6 — 2026-07-02 — V2 direction locked (discussion only, no code)
+(backfilled at harvest)
+
+Arc: wrote .agent/roadmap.md — §A interpretation-layer spec (bands live in the ENGINE not
+the UI; ACWR gauge/ribbon, monotony/strain bands + cap, z magnitude tiers, relative %
+framing, weekly-table tinting, tappable info glossary), §B V2 sequencing APPROVED (outcomes
+→ passive import → pattern-candidates; nutrition ordinal-only), §C seed-first methodology
+(extend the ADR-020 demo narrative per feature so time-gated unlocks never block dev).
+Wearables: both users getting Whoop soon → Whoop API = primary V2.2 target.
+
+> HARVESTED through Session 6 (2026-07-02) on 2026-07-02 → 0 ADRs (all 21 already filed), 3 playbooks (skills.md created), 8 candidates C-001..C-008 (all new, seen_in 1 — none promotable), 1 memory updated (llm-wiki-knowledge-loop)

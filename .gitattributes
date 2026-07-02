@@ -1,0 +1,10 @@
+# Deterministic line endings: Biome's formatter demands LF; without this, Windows
+# checkouts (core.autocrlf=true) smudge working copies to CRLF and `verify` goes red
+# on format for files whose committed content is fine. eol=lf makes checkout byte-stable.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.jpg binary
+*.webp binary
+*.woff binary
+*.woff2 binary

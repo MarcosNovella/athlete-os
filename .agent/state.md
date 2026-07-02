@@ -9,10 +9,12 @@ Log:
 
 - 2026-07-02 Session 4: test-data SEED (ADR-020) — scripts/seed.ts + `pnpm seed` (`-- --dry-run` previews the real computeSnapshot). 28-day narrative (21d baseline → 7d overreaching) on a DISPOSABLE demo subject (demo@athleteos.app), reusing emission.ts + save_* RPCs via anon key (no service-role). Demo auth user created by hand via MCP SQL → guardrail G-007 (GoTrue 500 until token cols set to ''). Loaded 28 checkins / 23 sessions / 209 obs; RE-RUN idempotent (same counts, 0 dupe groups). In-app (dev) confirms all unlocks open + all 3 flags fire (ACWR 1.55 alta, readiness z-2.78, monotony 38.39). verify GREEN (53).
 
-Last done: demo subject fully seeded + validated in-app; MVP now demonstrable end-to-end without waiting for real history. (Cosmetic: monotony=38 is exaggerated — loads too clustered; fine for demo, could add jitter if realism matters.)
+- 2026-07-02 Session 5: ran /coach against the demo subject (28d seeded history) — deterministic briefing via `pnpm briefing`, wrote back 1 weekly_synthesis + 1 hypothesis, confirmed both render in the Coach tab. Found + fixed a pre-existing mojibake bug (G-006 residue) in coach/page.tsx + OnboardingForm.tsx while testing. Merged feat/test-data-seed -> main (ff), then git+Vercel setup (ADR-021): created GitHub repo MarcosNovella/athlete-os, pushed main + feature branch, connected the existing Vercel project to it via the dashboard (git-app OAuth step the MCP can't do headlessly). Push-to-deploy is now live for main; other branches get previews.
 
-Next: (a) run /coach against the demo subject to exercise the weekly-synthesis path end-to-end; (b) first real /coach run once ~1wk of real data; (c) synthesis reminder automation; (d) optional: git remote + Vercel git integration, custom domain. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
+Last done: repo on GitHub + Vercel git integration connected and confirmed by Marcos; MVP fully demonstrable end-to-end (seed -> engine -> coach) and now ships via git push instead of manual `vercel deploy`.
+
+Next: (a) first real /coach run once ~1wk of real data; (b) synthesis reminder automation; (c) optional: custom domain. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
 
 Open questions: -
 
-Standing (durable pointers): Supabase "athlete-os" id=zidgpigxtuzpnjvinidx (sa-east-1); G-000 HARD BAN on project "yogastasis"; 2 real users (marcosnovella99@, thomasnovella12@) + 1 e2e user + 1 demo user (demo@athleteos.app / DemoSeed2026!, disposable seed subject), siloed per D7; no service-role key stored anywhere.
+Standing (durable pointers): Supabase "athlete-os" id=zidgpigxtuzpnjvinidx (sa-east-1); G-000 HARD BAN on project "yogastasis"; 2 real users (marcosnovella99@, thomasnovella12@) + 1 e2e user + 1 demo user (demo@athleteos.app / DemoSeed2026!, disposable seed subject), siloed per D7; no service-role key stored anywhere. GitHub: MarcosNovella/athlete-os (public, main tracked). Vercel project prj_VC0NJaECdjP7UtPH96YDegesLkOe now git-connected — push to main = auto prod deploy.

@@ -43,7 +43,9 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // PWA plumbing is auth-exempt: sw.js + manifest are fetched by the browser
+  // without app context, and /offline is a static shell precached by the SW.
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|sw\\.js$|manifest\\.webmanifest$|offline$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

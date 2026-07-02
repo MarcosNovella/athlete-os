@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { uuidv7 } from '@/lib/ids';
+import type { ActionResult } from './actions';
 import { saveSession } from './actions';
+import { enqueueCapture } from './offline';
 import type { Modality } from './schemas';
 import { MODALITIES } from './schemas';
 
@@ -48,26 +50,51 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
 
   const complete = modality !== null && duration !== null && srpe !== null;
 
+  const resetForNextEntry = () => {
+    // Fresh idempotency id for the next entry.
+    setFormId(uuidv7());
+    setModality(null);
+    setDuration(null);
+    setSrpe(null);
+    setNotes('');
+  };
+
   const submit = () => {
     if (!complete) return;
     startTransition(async () => {
-      const result = await saveSession({
+      const payload = {
         id: formId,
         date: day === 'today' ? todayDate : yesterdayDate,
         modality,
         duration_min: duration,
         srpe,
         notes: notes.length > 0 ? notes : undefined,
-      });
+      };
+      const load = (duration ?? 0) * (srpe ?? 0);
+      let result: ActionResult;
+      try {
+        result = await saveSession(payload);
+      } catch {
+        // Network down: queue locally (id travels with the payload, so the
+        // replay upsert stays idempotent), replayed by <OfflineSync /> (D12).
+        try {
+          await enqueueCapture('session', payload);
+          setMessage({
+            kind: 'ok',
+            text: `Sesión guardada offline ⏳ — carga ${load} AU, se sincroniza al reconectar`,
+          });
+          resetForNextEntry();
+        } catch {
+          setMessage({
+            kind: 'error',
+            text: 'Sin conexión y no se pudo guardar en el dispositivo.',
+          });
+        }
+        return;
+      }
       if (result.ok) {
-        const load = (duration ?? 0) * (srpe ?? 0);
         setMessage({ kind: 'ok', text: `Sesión guardada ✓ — carga ${load} AU` });
-        // Reset for the next entry with a fresh idempotency id.
-        setFormId(uuidv7());
-        setModality(null);
-        setDuration(null);
-        setSrpe(null);
-        setNotes('');
+        resetForNextEntry();
       } else {
         setMessage({ kind: 'error', text: result.error });
       }

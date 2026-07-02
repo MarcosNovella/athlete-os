@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import type { ActionResult } from './actions';
 import { saveCheckIn } from './actions';
+import { enqueueCapture } from './offline';
 
 type CheckInValues = {
   sleep_hours: number;
@@ -79,21 +81,37 @@ function Fields({
     stress: initial?.stress ?? null,
   });
   const [pending, startTransition] = useTransition();
-  const [status, setStatus] = useState<'idle' | 'saved' | 'error'>(initial ? 'saved' : 'idle');
+  const [status, setStatus] = useState<'idle' | 'saved' | 'queued' | 'error'>(
+    initial ? 'saved' : 'idle',
+  );
   const [errorMsg, setErrorMsg] = useState('');
 
   const complete = Object.values(scales).every((v) => v !== null);
 
   const submit = () => {
     startTransition(async () => {
-      const result = await saveCheckIn({
+      const payload = {
         date,
         sleep_hours: sleepHours,
         sleep_quality: scales.sleep_quality,
         readiness: scales.readiness,
         soreness: scales.soreness,
         stress: scales.stress,
-      });
+      };
+      let result: ActionResult;
+      try {
+        result = await saveCheckIn(payload);
+      } catch {
+        // Network down: queue locally, replayed by <OfflineSync /> (D12).
+        try {
+          await enqueueCapture('checkin', payload);
+          setStatus('queued');
+        } catch {
+          setStatus('error');
+          setErrorMsg('Sin conexión y no se pudo guardar en el dispositivo.');
+        }
+        return;
+      }
       if (result.ok) {
         setStatus('saved');
       } else {
@@ -156,6 +174,11 @@ function Fields({
       {status === 'saved' && !pending ? (
         <p className="text-center text-sm text-emerald-700">
           Guardado ✓ — readiness {scales.readiness}/5, {sleepHours.toFixed(2)} h de sueño
+        </p>
+      ) : null}
+      {status === 'queued' && !pending ? (
+        <p className="text-center text-sm text-amber-700">
+          Sin conexión — guardado en este dispositivo ⏳ se sincroniza solo al reconectar.
         </p>
       ) : null}
     </div>

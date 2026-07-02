@@ -3,10 +3,11 @@ Goal: MVP "Readiness Loop" — v1 FEATURE-COMPLETE; now in real-usage phase. DoD
 
 Log:
 - 2026-07-01 Session 1: scaffold → substrate → capture → engine → dashboards → $0 AI coach. All verify-GREEN (49 tests) + E2E across 3 tabs. Decisions ADR-001..016; guardrails G-000..004. Full episode: journal.md.
+- 2026-07-01 Session 2: PWA + offline queue (last D12 gap) — manifest+icons, hand-rolled sw.js, IndexedDB queue + <OfflineSync/> replay (ADR-017); guardrail G-005. verify GREEN (53 tests) + offline E2E 8/8 on prod build.
 
-Last done: Session 1 closed & committed (396a473: journal episode + state compaction). Ran /checkpoint.
+Last done: Session 2 PWA/offline shipped & committed. e2e user password rotated via SQL (throwaway).
 
-Next: Session 2 — pick one: (a) PWA manifest + offline queue (remaining D12 gap); (b) Vercel deploy for brother's phone; (c) first real /coach run once ~1wk of data exists; (d) synthesis reminder automation. Meanwhile the real test is daily capture by both users.
+Next: pick one: (a) Vercel deploy for brother's phone (now unblocked as full PWA); (b) first real /coach run once ~1wk of data exists; (c) synthesis reminder automation. Meanwhile the real test is daily capture by both users.
 
 Open questions: -
 

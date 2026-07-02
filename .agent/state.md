@@ -11,9 +11,11 @@ Log:
 
 - 2026-07-02 Session 5: ran /coach against the demo subject (28d seeded history) — deterministic briefing via `pnpm briefing`, wrote back 1 weekly_synthesis + 1 hypothesis, confirmed both render in the Coach tab. Found + fixed a pre-existing mojibake bug (G-006 residue) in coach/page.tsx + OnboardingForm.tsx while testing. Merged feat/test-data-seed -> main (ff), then git+Vercel setup (ADR-021): created GitHub repo MarcosNovella/athlete-os, pushed main + feature branch, connected the existing Vercel project to it via the dashboard (git-app OAuth step the MCP can't do headlessly). Push-to-deploy is now live for main; other branches get previews.
 
-Last done: repo on GitHub + Vercel git integration connected and confirmed by Marcos; MVP fully demonstrable end-to-end (seed -> engine -> coach) and now ships via git push instead of manual `vercel deploy`.
+- 2026-07-02 Session 6: DISCUSSION ONLY (no code) — post-MVP direction. Wrote .agent/roadmap.md: (A) interpretation-layer spec (bands in engine not UI; ACWR gauge, monotony/strain bands + cap, z magnitude tiers, relative % framing, ACWR ribbon chart, weekly-table tinting, tappable info glossary for all acronyms) + (B) V2 sequencing APPROVED by Marcos (outcomes → passive import → pattern-candidates; nutrition ordinal-only) + (C) methodology: seed-first validation — extend ADR-020 demo narratives per feature so time-gated unlocks never block dev. Wearables answered: Marcos has Apple Watch S10 now; BOTH getting Whoop soon → Whoop API = primary V2.2 target.
 
-Next: (a) first real /coach run once ~1wk of real data; (b) synthesis reminder automation; (c) optional: custom domain. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
+Last done: roadmap.md finalized (§A spec + §B approved sequencing + §C seed-first methodology); ready to start building V2.0.
+
+Next: (a) BUILD V2.0 interpretation layer per roadmap.md §A (incl. info glossary), validated against the demo subject per §C; (b) first real /coach run once ~1wk of real data; (c) synthesis reminder automation. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
 
 Open questions: -
 

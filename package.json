@@ -10,7 +10,8 @@
     "verify": "biome check . && tsc --noEmit && vitest run",
     "fix": "biome check --write .",
     "db:types": "supabase gen types typescript --project-id zidgpigxtuzpnjvinidx --schema public > src/lib/supabase/database.types.ts",
-    "briefing": "tsx scripts/coach-briefing.ts"
+    "briefing": "tsx scripts/coach-briefing.ts",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

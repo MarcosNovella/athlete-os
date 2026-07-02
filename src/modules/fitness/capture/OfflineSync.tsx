@@ -66,7 +66,7 @@ export function OfflineSync() {
   return (
     <div className="space-y-2">
       {pending > 0 ? (
-        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="flex items-center justify-between rounded-xl border border-flood/40 bg-flood/10 p-3 text-sm text-chalk">
           <span>
             {pending === 1 ? '1 registro esperando' : `${pending} registros esperando`} conexión —
             se sincronizan solos.
@@ -75,7 +75,7 @@ export function OfflineSync() {
             type="button"
             onClick={() => void drain()}
             disabled={syncing}
-            className="ml-3 shrink-0 rounded-full bg-amber-900 px-3 py-1 font-medium text-amber-50 disabled:opacity-50"
+            className="ml-3 shrink-0 rounded-full bg-flood px-3 py-1 font-medium text-pitch disabled:opacity-50"
           >
             {syncing ? 'Sincronizando…' : 'Reintentar'}
           </button>
@@ -84,13 +84,13 @@ export function OfflineSync() {
       {dropped.map((error) => (
         <div
           key={error}
-          className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+          className="flex items-center justify-between rounded-xl border border-high/40 bg-high/10 p-3 text-sm text-chalk"
         >
           <span>Un registro offline no se pudo sincronizar: {error}</span>
           <button
             type="button"
             onClick={() => setDropped((prev) => prev.filter((e) => e !== error))}
-            className="ml-3 shrink-0 font-medium underline underline-offset-2"
+            className="ml-3 shrink-0 font-medium text-high underline underline-offset-2"
           >
             OK
           </button>

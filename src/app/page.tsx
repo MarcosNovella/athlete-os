@@ -1,6 +1,7 @@
 import { logout } from '@/core/auth/actions';
 import { OnboardingForm } from '@/core/subjects/OnboardingForm';
 import { getCurrentSubject } from '@/core/subjects/service';
+import { PulseMark } from '@/core/ui/PulseMark';
 import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { CheckInForm } from '@/modules/fitness/capture/CheckInForm';
@@ -52,19 +53,24 @@ export default async function TodayPage() {
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
-      <header className="flex items-center justify-between pt-2">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Hola, {subject.display_name}</h1>
-          <p className="text-sm text-zinc-500">{today}</p>
+      <header className="pt-2">
+        <div className="flex items-center gap-2">
+          <PulseMark className="h-4 w-7 text-flood" />
+          <span className="font-display text-xs font-semibold uppercase tracking-[0.24em] text-dim">
+            Athlete OS
+          </span>
+          <span className="ml-auto font-mono text-[10px] text-faint">{today}</span>
         </div>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="text-sm text-zinc-400 underline-offset-2 hover:underline"
-          >
-            Salir
-          </button>
-        </form>
+        <div className="mt-3 flex items-end justify-between">
+          <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
+            Hola, {subject.display_name}
+          </h1>
+          <form action={logout}>
+            <button type="submit" className="text-sm text-faint underline-offset-2 hover:underline">
+              Salir
+            </button>
+          </form>
+        </div>
       </header>
 
       <TabNav active="today" />
@@ -83,27 +89,34 @@ export default async function TodayPage() {
 
       <SessionForm todayDate={today} yesterdayDate={yesterday} />
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-line bg-turf p-4">
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-semibold">Sesiones de hoy</h2>
-          <span className="text-sm text-zinc-500">
-            carga total: <span className="font-semibold tabular-nums">{dailyLoad} AU</span>
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            Sesiones de hoy
+          </h2>
+          <span className="text-sm text-dim">
+            carga total:{' '}
+            <span className="font-display text-base font-semibold tabular-nums text-chalk">
+              {dailyLoad} AU
+            </span>
           </span>
         </div>
         {sessions.length === 0 ? (
-          <p className="text-sm text-zinc-400">Todavía no registraste sesiones hoy.</p>
+          <p className="text-sm text-faint">Todavía no registraste sesiones hoy.</p>
         ) : (
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y divide-line">
             {sessions.map((s) => (
               <li key={s.id} className="flex items-center justify-between py-2.5">
                 <div>
                   <span className="font-medium capitalize">{s.modality}</span>
-                  <span className="ml-2 text-sm text-zinc-500">
+                  <span className="ml-2 font-mono text-xs text-dim">
                     {s.duration_min} min · RPE {s.srpe}
                   </span>
-                  {s.notes ? <p className="text-xs text-zinc-400">{s.notes}</p> : null}
+                  {s.notes ? <p className="text-xs text-faint">{s.notes}</p> : null}
                 </div>
-                <span className="font-semibold tabular-nums">{s.load ?? 0} AU</span>
+                <span className="font-display text-lg font-semibold tabular-nums">
+                  {s.load ?? 0} <span className="text-xs font-medium text-dim">AU</span>
+                </span>
               </li>
             ))}
           </ul>

@@ -5,7 +5,7 @@
  * NEVER intercepted — offline writes live in the IndexedDB queue in the app.
  * Bump VERSION to invalidate all caches on deploy of a new SW.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const STATIC_CACHE = `aos-static-${VERSION}`;
 const PAGES_CACHE = `aos-pages-${VERSION}`;
 const OFFLINE_URL = '/offline';

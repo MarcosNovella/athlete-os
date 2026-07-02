@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+﻿import { redirect } from 'next/navigation';
 import { getCurrentSubject } from '@/core/subjects/service';
 import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -22,10 +22,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  proposed: 'bg-amber-100 text-amber-800',
-  confirmed: 'bg-emerald-100 text-emerald-800',
-  rejected: 'bg-zinc-100 text-zinc-500',
-  archived: 'bg-zinc-100 text-zinc-500',
+  proposed: 'bg-flood/15 text-flood',
+  confirmed: 'bg-ok/15 text-ok',
+  rejected: 'bg-turf-2 text-faint',
+  archived: 'bg-turf-2 text-faint',
 };
 
 export default async function CoachPage() {
@@ -67,25 +67,29 @@ export default async function CoachPage() {
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
       <header className="pt-2">
-        <h1 className="text-xl font-semibold tracking-tight">Coach</h1>
-        <p className="text-sm text-zinc-500">síntesis, hipótesis y tu briefing</p>
+        <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
+          Coach
+        </h1>
+        <p className="mt-1 font-mono text-[10px] text-faint">síntesis, hipótesis y tu briefing</p>
       </header>
 
       <TabNav active="coach" />
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-2 font-semibold">Insights</h2>
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-2 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Insights
+        </h2>
         {insights.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-faint">
             Sin insights todavía. Se generan con la síntesis semanal (/coach) o los cargás al
             confirmar patrones.
           </p>
         ) : (
           <ul className="space-y-3">
             {insights.map((i) => (
-              <li key={i.id} className="rounded-xl border border-zinc-100 p-3">
+              <li key={i.id} className="rounded-lg border border-line bg-turf-2 p-3">
                 <div className="mb-1 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-medium text-zinc-600">
+                  <span className="rounded-full bg-turf px-2 py-0.5 font-medium text-dim">
                     {KIND_LABEL[i.kind] ?? i.kind}
                   </span>
                   <span
@@ -94,11 +98,11 @@ export default async function CoachPage() {
                     {STATUS_LABEL[i.status] ?? i.status}
                   </span>
                   {i.confidence ? (
-                    <span className="text-zinc-400">confianza {i.confidence}</span>
+                    <span className="text-faint">confianza {i.confidence}</span>
                   ) : null}
                   {i.window_start ? (
-                    <span className="text-zinc-400">
-                      {i.window_start} → {i.window_end ?? '…'}
+                    <span className="font-mono text-[10px] text-faint">
+                      {i.window_start} â†’ {i.window_end ?? 'â€¦'}
                     </span>
                   ) : null}
                 </div>
@@ -110,7 +114,7 @@ export default async function CoachPage() {
                       <input type="hidden" name="status" value="confirmed" />
                       <button
                         type="submit"
-                        className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white"
+                        className="w-full rounded-lg bg-ok/20 py-2 text-sm font-semibold text-ok"
                       >
                         Confirmar
                       </button>
@@ -120,7 +124,7 @@ export default async function CoachPage() {
                       <input type="hidden" name="status" value="rejected" />
                       <button
                         type="submit"
-                        className="w-full rounded-lg bg-zinc-200 py-2 text-sm font-medium text-zinc-700"
+                        className="w-full rounded-lg border border-line bg-turf py-2 text-sm font-medium text-dim"
                       >
                         Rechazar
                       </button>
@@ -133,16 +137,18 @@ export default async function CoachPage() {
         )}
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-1 font-semibold">Briefing para la IA</h2>
-        <p className="mb-3 text-sm text-zinc-500">
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-1 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Briefing para la IA
+        </h2>
+        <p className="mb-3 text-sm text-dim">
           Tu estado completo, calculado por el motor, listo para pegar en claude.ai (u otra IA) y
           conversar. Incluye las reglas para que razone solo sobre tus números.
         </p>
         <CopyButton text={briefing} />
         <details className="mt-3">
-          <summary className="cursor-pointer text-sm text-zinc-500">Ver briefing</summary>
-          <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl bg-zinc-50 p-3 text-xs text-zinc-700">
+          <summary className="cursor-pointer text-sm text-dim">Ver briefing</summary>
+          <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-pitch p-3 text-xs text-dim">
             {briefing}
           </pre>
         </details>

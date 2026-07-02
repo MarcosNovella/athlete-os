@@ -4,10 +4,10 @@ import type { UnlockKey } from '@/modules/fitness/engine/unlock';
 /** "Estado de hoy" — the immediate reward (D12). Pure display → RSC (R1). */
 
 const BAND_STYLE: Record<string, string> = {
-  low: 'bg-zinc-100 text-zinc-600',
-  optimal: 'bg-emerald-100 text-emerald-800',
-  caution: 'bg-amber-100 text-amber-800',
-  high: 'bg-red-100 text-red-700',
+  low: 'bg-turf-2 text-dim',
+  optimal: 'bg-ok/15 text-ok',
+  caution: 'bg-flood/15 text-flood',
+  high: 'bg-high/15 text-high',
 };
 
 const BAND_LABEL: Record<string, string> = {
@@ -39,7 +39,7 @@ function flagText(flag: EngineFlag): string {
 function ZBadge({ state }: { state: NonNullable<MetricState> }) {
   if (state.z === null) {
     return (
-      <span className="text-xs text-zinc-400">
+      <span className="font-mono text-[10px] text-faint">
         {state.baselineFormed ? '' : 'baseline formándose'}
       </span>
     );
@@ -47,9 +47,7 @@ function ZBadge({ state }: { state: NonNullable<MetricState> }) {
   const up = state.z >= 0.5;
   const down = state.z <= -0.5;
   return (
-    <span
-      className={`text-xs font-medium ${down ? 'text-red-600' : up ? 'text-emerald-700' : 'text-zinc-500'}`}
-    >
+    <span className={`text-xs font-medium ${down ? 'text-high' : up ? 'text-ok' : 'text-dim'}`}>
       {down ? '↓ bajo tu media' : up ? '↑ sobre tu media' : '→ en tu media'}
     </span>
   );
@@ -63,47 +61,59 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
   );
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-line bg-turf p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="font-semibold">Estado de hoy</h2>
-        <span className="text-xs text-zinc-400">día {snapshot.historyDays} de registro</span>
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Estado de hoy
+        </h2>
+        <span className="font-mono text-[10px] text-faint">día {snapshot.historyDays}</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Stat label="Carga hoy" value={`${snapshot.todayLoad} AU`} />
-        <Stat label="Carga 7 días" value={`${snapshot.weekLoad} AU`} />
+      {/* Hero pair: how the athlete IS — readiness and sleep, scoreboard-size. */}
+      <div className="grid grid-cols-2 gap-2">
         {snapshot.readiness ? (
-          <Stat
+          <Hero
             label="Readiness"
-            value={`${snapshot.readiness.value}/5`}
+            value={String(snapshot.readiness.value)}
+            unit="/5"
             extra={<ZBadge state={snapshot.readiness} />}
           />
         ) : (
-          <Stat
+          <Hero
             label="Readiness"
             value="—"
-            extra={<span className="text-xs text-zinc-400">sin check-in hoy</span>}
+            unit=""
+            extra={<span className="font-mono text-[10px] text-faint">sin check-in hoy</span>}
           />
         )}
         {snapshot.sleep ? (
-          <Stat
+          <Hero
             label="Sueño"
-            value={`${snapshot.sleep.value} h`}
+            value={String(snapshot.sleep.value)}
+            unit="h"
             extra={<ZBadge state={snapshot.sleep} />}
           />
         ) : (
-          <Stat label="Sueño" value="—" />
+          <Hero label="Sueño" value="—" unit="" />
         )}
+      </div>
+
+      {/* Load numbers: what the athlete DID. */}
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Stat label="Carga hoy" value={`${snapshot.todayLoad}`} unit="AU" />
+        <Stat label="Carga 7 días" value={`${snapshot.weekLoad}`} unit="AU" />
         {snapshot.acute7 !== null ? (
-          <Stat label="Aguda (EWMA 7d)" value={`${snapshot.acute7} AU`} />
+          <Stat label="Aguda · EWMA 7d" value={`${snapshot.acute7}`} unit="AU" />
         ) : null}
         {snapshot.acwr !== null ? (
-          <div className="rounded-xl bg-zinc-50 p-3">
-            <p className="text-xs text-zinc-500">
-              ACWR{snapshot.acwr.provisional ? ' (provisional)' : ''}
+          <div className="rounded-lg bg-turf-2 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-faint">
+              ACWR{snapshot.acwr.provisional ? ' · provisional' : ''}
             </p>
             <p className="mt-0.5 flex items-center gap-2">
-              <span className="text-lg font-semibold tabular-nums">{snapshot.acwr.value}</span>
+              <span className="font-display text-2xl font-semibold tabular-nums">
+                {snapshot.acwr.value}
+              </span>
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-medium ${BAND_STYLE[snapshot.acwr.band]}`}
               >
@@ -123,7 +133,10 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
       {snapshot.flags.length > 0 ? (
         <ul className="mt-3 space-y-1.5">
           {snapshot.flags.map((f) => (
-            <li key={f.kind} className="rounded-lg bg-amber-50 p-2.5 text-sm text-amber-900">
+            <li
+              key={f.kind}
+              className="rounded-lg border border-flood/30 bg-flood/10 p-2.5 text-sm text-chalk"
+            >
               {flagText(f)}
             </li>
           ))}
@@ -131,11 +144,11 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
       ) : null}
 
       {lockedToShow.length > 0 ? (
-        <ul className="mt-3 space-y-1 border-t border-zinc-100 pt-3">
+        <ul className="mt-3 space-y-1 border-t border-line pt-3">
           {lockedToShow.map((u) => (
-            <li key={u.key} className="flex items-center justify-between text-xs text-zinc-400">
-              <span>🔒 {UNLOCK_LABEL[u.key]}</span>
-              <span>
+            <li key={u.key} className="flex items-center justify-between text-xs text-faint">
+              <span>{UNLOCK_LABEL[u.key]}</span>
+              <span className="font-mono text-[10px]">
                 {u.remaining} {u.key === 'baselines' ? 'check-ins' : 'días'} más
               </span>
             </li>
@@ -146,12 +159,37 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
   );
 }
 
-function Stat({ label, value, extra }: { label: string; value: string; extra?: React.ReactNode }) {
+function Hero({
+  label,
+  value,
+  unit,
+  extra,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  extra?: React.ReactNode;
+}) {
   return (
-    <div className="rounded-xl bg-zinc-50 p-3">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums">{value}</p>
-      {extra}
+    <div className="rounded-lg bg-turf-2 p-3">
+      <p className="font-mono text-[10px] uppercase tracking-wide text-faint">{label}</p>
+      <p className="mt-0.5 font-display text-4xl font-semibold leading-none tabular-nums">
+        {value}
+        {unit ? <span className="ml-0.5 text-lg font-medium text-dim">{unit}</span> : null}
+      </p>
+      <div className="mt-1 min-h-4">{extra}</div>
+    </div>
+  );
+}
+
+function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return (
+    <div className="rounded-lg bg-turf-2 p-3">
+      <p className="font-mono text-[10px] uppercase tracking-wide text-faint">{label}</p>
+      <p className="mt-0.5 font-display text-2xl font-semibold leading-none tabular-nums">
+        {value}
+        {unit ? <span className="ml-0.5 text-sm font-medium text-dim">{unit}</span> : null}
+      </p>
     </div>
   );
 }

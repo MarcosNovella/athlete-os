@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { PulseMark } from '@/core/ui/PulseMark';
 import type { ActionResult } from './actions';
 import { saveCheckIn } from './actions';
 import { enqueueCapture } from './offline';
@@ -35,16 +36,20 @@ export function CheckInForm(props: Props) {
   const initial = day === 'today' ? props.todayInitial : props.yesterdayInitial;
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-line bg-turf p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold">Check-in</h2>
-        <div className="flex gap-1 rounded-full bg-zinc-100 p-1 text-sm">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Check-in
+        </h2>
+        <div className="flex gap-1 rounded-full border border-line bg-turf-2 p-1 text-sm">
           {(['today', 'yesterday'] as const).map((d) => (
             <button
               key={d}
               type="button"
               onClick={() => setDay(d)}
-              className={`rounded-full px-3 py-1 ${day === d ? 'bg-zinc-900 text-white' : 'text-zinc-500'}`}
+              className={`rounded-full px-3 py-1 font-medium ${
+                day === d ? 'bg-chalk text-pitch' : 'text-dim'
+              }`}
             >
               {d === 'today' ? 'Hoy' : 'Ayer'}
             </button>
@@ -85,6 +90,8 @@ function Fields({
     initial ? 'saved' : 'idle',
   );
   const [errorMsg, setErrorMsg] = useState('');
+  // Only draw the reward pulse for a save made NOW, not for a pre-existing one.
+  const [justSaved, setJustSaved] = useState(false);
 
   const complete = Object.values(scales).every((v) => v !== null);
 
@@ -114,6 +121,7 @@ function Fields({
       }
       if (result.ok) {
         setStatus('saved');
+        setJustSaved(true);
       } else {
         setStatus('error');
         setErrorMsg(result.error);
@@ -125,8 +133,10 @@ function Fields({
     <div className="space-y-4">
       <div>
         <div className="mb-1 flex items-baseline justify-between">
-          <span className="text-sm text-zinc-600">Horas de sueño</span>
-          <span className="text-lg font-semibold tabular-nums">{sleepHours.toFixed(2)} h</span>
+          <span className="text-sm text-dim">Horas de sueño</span>
+          <span className="font-display text-2xl font-semibold tabular-nums">
+            {sleepHours.toFixed(2)} <span className="text-sm font-medium text-dim">h</span>
+          </span>
         </div>
         <div className="flex gap-2">
           <Stepper onClick={() => setSleepHours((h) => Math.max(0, h - 0.25))} label="−15 min" />
@@ -136,17 +146,17 @@ function Fields({
 
       {SCALES.map(({ key, label }) => (
         <div key={key}>
-          <span className="mb-1 block text-sm text-zinc-600">{label}</span>
+          <span className="mb-1 block text-sm text-dim">{label}</span>
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setScales((s) => ({ ...s, [key]: n }))}
-                className={`min-h-12 rounded-xl border text-lg font-medium tabular-nums transition-colors ${
+                className={`min-h-12 rounded-lg border font-display text-xl font-semibold tabular-nums transition-colors ${
                   scales[key] === n
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-200 bg-white text-zinc-700 active:bg-zinc-100'
+                    ? 'border-flood bg-flood text-pitch'
+                    : 'border-line bg-turf-2 text-chalk active:bg-turf'
                 }`}
               >
                 {n}
@@ -157,27 +167,28 @@ function Fields({
       ))}
 
       {backfill ? (
-        <p className="text-xs text-zinc-500">
-          Registrando <span className="font-medium">ayer</span> — se marca como backfill.
+        <p className="text-xs text-faint">
+          Registrando <span className="font-medium text-dim">ayer</span> — se marca como backfill.
         </p>
       ) : null}
-      {status === 'error' ? <p className="text-sm text-red-600">{errorMsg}</p> : null}
+      {status === 'error' ? <p className="text-sm text-high">{errorMsg}</p> : null}
 
       <button
         type="button"
         disabled={!complete || pending}
         onClick={submit}
-        className="w-full rounded-xl bg-zinc-900 p-3.5 font-medium text-white disabled:bg-zinc-300"
+        className="w-full rounded-lg bg-flood p-3.5 font-semibold text-pitch active:brightness-90 disabled:bg-turf-2 disabled:text-faint"
       >
         {pending ? 'Guardando…' : status === 'saved' ? 'Actualizar ✓' : 'Guardar check-in'}
       </button>
       {status === 'saved' && !pending ? (
-        <p className="text-center text-sm text-emerald-700">
+        <p className="flex items-center justify-center gap-2 text-center text-sm text-ok">
+          {justSaved ? <PulseMark className="h-3.5 w-6 shrink-0" animate /> : null}
           Guardado ✓ — readiness {scales.readiness}/5, {sleepHours.toFixed(2)} h de sueño
         </p>
       ) : null}
       {status === 'queued' && !pending ? (
-        <p className="text-center text-sm text-amber-700">
+        <p className="text-center text-sm text-flood">
           Sin conexión — guardado en este dispositivo ⏳ se sincroniza solo al reconectar.
         </p>
       ) : null}
@@ -190,7 +201,7 @@ function Stepper({ onClick, label }: { onClick: () => void; label: string }) {
     <button
       type="button"
       onClick={onClick}
-      className="min-h-12 flex-1 rounded-xl border border-zinc-200 bg-white font-medium text-zinc-700 active:bg-zinc-100"
+      className="min-h-12 flex-1 rounded-lg border border-line bg-turf-2 font-medium text-chalk active:bg-turf"
     >
       {label}
     </button>

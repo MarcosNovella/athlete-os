@@ -20,22 +20,28 @@ export default async function TrendsPage() {
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
       <header className="pt-2">
-        <h1 className="text-xl font-semibold tracking-tight">Tendencias</h1>
-        <p className="text-sm text-zinc-500">últimos 28 días</p>
+        <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
+          Tendencias
+        </h1>
+        <p className="mt-1 font-mono text-[10px] text-faint">últimos 28 días</p>
       </header>
 
       <TabNav active="trends" />
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-2 font-semibold">Carga y ACWR</h2>
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-2 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Carga y ACWR
+        </h2>
         <LoadChart daily={t.daily} acute={t.acute7} chronic={t.chronic28} />
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-line bg-turf p-4">
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-semibold">Sueño</h2>
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            Sueño
+          </h2>
           {t.sleepMean !== null ? (
-            <span className="text-xs text-zinc-400">tu media: {t.sleepMean} h</span>
+            <span className="font-mono text-[10px] text-faint">tu media: {t.sleepMean} h</span>
           ) : null}
         </div>
         <MetricChart
@@ -45,16 +51,18 @@ export default async function TrendsPage() {
           yMin={sleepMin}
           yMax={sleepMax}
           mean={t.sleepMean}
-          strokeClass="stroke-sky-600"
+          strokeClass="stroke-sleep"
           label="Sueño últimos 28 días"
         />
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-line bg-turf p-4">
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-semibold">Readiness</h2>
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            Readiness
+          </h2>
           {t.readinessMean !== null ? (
-            <span className="text-xs text-zinc-400">tu media: {t.readinessMean}/5</span>
+            <span className="font-mono text-[10px] text-faint">tu media: {t.readinessMean}/5</span>
           ) : null}
         </div>
         <MetricChart
@@ -64,13 +72,15 @@ export default async function TrendsPage() {
           yMin={1}
           yMax={5}
           mean={t.readinessMean}
-          strokeClass="stroke-emerald-600"
+          strokeClass="stroke-ok"
           label="Readiness últimos 28 días"
         />
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <h2 className="mb-2 font-semibold">Resumen semanal</h2>
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-2 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Resumen semanal
+        </h2>
         <WeeklyTable weeks={t.weeks} />
       </section>
     </main>

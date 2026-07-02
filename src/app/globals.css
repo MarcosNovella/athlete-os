@@ -1,26 +1,59 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design language: "vestuario antes del amanecer" (ADR-019).
+ * A floodlit pitch at night: green-cast ink, chalk lines, sodium-amber light.
+ * Semantic band colors (ok/flood/high) are reserved for engine state.
+ */
+@theme {
+  --color-pitch: #0b100e; /* page ink — grass at night, not neutral black */
+  --color-turf: #141b17; /* panel */
+  --color-turf-2: #1d2721; /* raised cell / input */
+  --color-line: #2b372f; /* chalk-line border */
+  --color-chalk: #edf2ec; /* primary text */
+  --color-dim: #96a69c; /* secondary text */
+  --color-faint: #6b7a70; /* tertiary labels */
+  --color-flood: #ffb020; /* THE accent: sodium floodlight */
+  --color-ok: #4ade80; /* engine band: optimal */
+  --color-high: #f87171; /* engine band: high risk */
+  --color-sleep: #7dd3fc; /* sleep series */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-barlow);
+  --font-display: var(--font-barlow-condensed);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--color-pitch);
+  color: var(--color-chalk);
+  font-family: var(--font-barlow), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-flood);
+  outline-offset: 2px;
+}
+
+/* Signature: the pulse draws itself on the check-in reward moment. */
+@keyframes pulse-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.pulse-draw {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  animation: pulse-draw 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-draw {
+    animation: none;
+  }
 }

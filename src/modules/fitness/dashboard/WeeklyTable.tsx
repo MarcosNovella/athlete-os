@@ -6,12 +6,12 @@ function fmtDay(isoDate: string): string {
 }
 
 export function WeeklyTable({ weeks }: { weeks: ReadonlyArray<WeekSummary> }) {
-  if (weeks.length === 0) return <p className="text-sm text-zinc-400">Sin semanas todavía.</p>;
+  if (weeks.length === 0) return <p className="text-sm text-faint">Sin semanas todavía.</p>;
 
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="text-left text-xs text-zinc-400">
+        <tr className="text-left font-mono text-[10px] uppercase tracking-wide text-faint">
           <th className="pb-2 font-normal">Semana</th>
           <th className="pb-2 text-right font-normal">Carga</th>
           <th className="pb-2 text-right font-normal">Ses.</th>
@@ -22,13 +22,15 @@ export function WeeklyTable({ weeks }: { weeks: ReadonlyArray<WeekSummary> }) {
       </thead>
       <tbody>
         {[...weeks].reverse().map((w) => (
-          <tr key={w.weekStart} className="border-t border-zinc-100">
-            <td className="py-2">{fmtDay(w.weekStart)}</td>
-            <td className="py-2 text-right font-medium tabular-nums">{w.totalLoad}</td>
-            <td className="py-2 text-right tabular-nums">{w.sessionCount}</td>
-            <td className="py-2 text-right tabular-nums">{w.avgSleep ?? '—'}</td>
-            <td className="py-2 text-right tabular-nums">{w.avgReadiness ?? '—'}</td>
-            <td className="py-2 text-right tabular-nums">{w.monotony ?? '—'}</td>
+          <tr key={w.weekStart} className="border-t border-line">
+            <td className="py-2 font-mono text-xs text-dim">{fmtDay(w.weekStart)}</td>
+            <td className="py-2 text-right font-display text-base font-semibold tabular-nums">
+              {w.totalLoad}
+            </td>
+            <td className="py-2 text-right tabular-nums text-dim">{w.sessionCount}</td>
+            <td className="py-2 text-right tabular-nums text-dim">{w.avgSleep ?? '—'}</td>
+            <td className="py-2 text-right tabular-nums text-dim">{w.avgReadiness ?? '—'}</td>
+            <td className="py-2 text-right tabular-nums text-dim">{w.monotony ?? '—'}</td>
           </tr>
         ))}
       </tbody>

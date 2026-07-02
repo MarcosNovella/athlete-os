@@ -102,16 +102,20 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
   };
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-line bg-turf p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold">Nueva sesión</h2>
-        <div className="flex gap-1 rounded-full bg-zinc-100 p-1 text-sm">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          Nueva sesión
+        </h2>
+        <div className="flex gap-1 rounded-full border border-line bg-turf-2 p-1 text-sm">
           {(['today', 'yesterday'] as const).map((d) => (
             <button
               key={d}
               type="button"
               onClick={() => setDay(d)}
-              className={`rounded-full px-3 py-1 ${day === d ? 'bg-zinc-900 text-white' : 'text-zinc-500'}`}
+              className={`rounded-full px-3 py-1 font-medium ${
+                day === d ? 'bg-chalk text-pitch' : 'text-dim'
+              }`}
             >
               {d === 'today' ? 'Hoy' : 'Ayer'}
             </button>
@@ -126,10 +130,10 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
               key={m}
               type="button"
               onClick={() => pickModality(m)}
-              className={`min-h-12 rounded-xl border font-medium transition-colors ${
+              className={`min-h-12 rounded-lg border font-display text-base font-semibold uppercase tracking-wide transition-colors ${
                 modality === m
-                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                  : 'border-zinc-200 bg-white text-zinc-700 active:bg-zinc-100'
+                  ? 'border-flood bg-flood text-pitch'
+                  : 'border-line bg-turf-2 text-chalk active:bg-turf'
               }`}
             >
               {MODALITY_LABEL[m]}
@@ -139,23 +143,29 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
 
         <div>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-sm text-zinc-600">Duración</span>
-            <span className="text-lg font-semibold tabular-nums">
-              {duration !== null ? `${duration} min` : '—'}
+            <span className="text-sm text-dim">Duración</span>
+            <span className="font-display text-2xl font-semibold tabular-nums">
+              {duration !== null ? (
+                <>
+                  {duration} <span className="text-sm font-medium text-dim">min</span>
+                </>
+              ) : (
+                '—'
+              )}
             </span>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setDuration((d) => Math.max(5, (d ?? 60) - 5))}
-              className="min-h-12 flex-1 rounded-xl border border-zinc-200 bg-white font-medium text-zinc-700 active:bg-zinc-100"
+              className="min-h-12 flex-1 rounded-lg border border-line bg-turf-2 font-medium text-chalk active:bg-turf"
             >
               −5 min
             </button>
             <button
               type="button"
               onClick={() => setDuration((d) => Math.min(600, (d ?? 55) + 5))}
-              className="min-h-12 flex-1 rounded-xl border border-zinc-200 bg-white font-medium text-zinc-700 active:bg-zinc-100"
+              className="min-h-12 flex-1 rounded-lg border border-line bg-turf-2 font-medium text-chalk active:bg-turf"
             >
               +5 min
             </button>
@@ -164,8 +174,8 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
 
         <div>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-sm text-zinc-600">Esfuerzo (sRPE)</span>
-            <span className="text-sm text-zinc-500">{srpe !== null ? RPE_ANCHORS[srpe] : ''}</span>
+            <span className="text-sm text-dim">Esfuerzo (sRPE)</span>
+            <span className="text-sm text-flood">{srpe !== null ? RPE_ANCHORS[srpe] : ''}</span>
           </div>
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
@@ -173,10 +183,10 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
                 key={n}
                 type="button"
                 onClick={() => setSrpe(n)}
-                className={`min-h-12 rounded-xl border text-lg font-medium tabular-nums transition-colors ${
+                className={`min-h-12 rounded-lg border font-display text-xl font-semibold tabular-nums transition-colors ${
                   srpe === n
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-200 bg-white text-zinc-700 active:bg-zinc-100'
+                    ? 'border-flood bg-flood text-pitch'
+                    : 'border-line bg-turf-2 text-chalk active:bg-turf'
                 }`}
               >
                 {n}
@@ -191,11 +201,11 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
           onChange={(e) => setNotes(e.target.value)}
           maxLength={2000}
           placeholder="Notas (opcional)"
-          className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm outline-none focus:border-zinc-900"
+          className="w-full rounded-lg border border-line bg-turf-2 p-3 text-sm text-chalk outline-none placeholder:text-faint focus:border-flood"
         />
 
         {message ? (
-          <p className={`text-sm ${message.kind === 'ok' ? 'text-emerald-700' : 'text-red-600'}`}>
+          <p className={`text-sm ${message.kind === 'ok' ? 'text-ok' : 'text-high'}`}>
             {message.text}
           </p>
         ) : null}
@@ -204,7 +214,7 @@ export function SessionForm({ todayDate, yesterdayDate }: Props) {
           type="button"
           disabled={!complete || pending}
           onClick={submit}
-          className="w-full rounded-xl bg-zinc-900 p-3.5 font-medium text-white disabled:bg-zinc-300"
+          className="w-full rounded-lg bg-flood p-3.5 font-semibold text-pitch active:brightness-90 disabled:bg-turf-2 disabled:text-faint"
         >
           {pending ? 'Guardando…' : 'Guardar sesión'}
         </button>

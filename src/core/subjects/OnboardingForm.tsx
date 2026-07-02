@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createSubject } from './actions';
 
-/** First-login onboarding: display name + auto-detected timezone (browser API â†’ client). */
+/** First-login onboarding: display name + auto-detected timezone (browser API → client). */
 export function OnboardingForm() {
   const [timezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 

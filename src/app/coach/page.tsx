@@ -102,7 +102,7 @@ export default async function CoachPage() {
                   ) : null}
                   {i.window_start ? (
                     <span className="font-mono text-[10px] text-faint">
-                      {i.window_start} â†’ {i.window_end ?? 'â€¦'}
+                      {i.window_start} → {i.window_end ?? '…'}
                     </span>
                   ) : null}
                 </div>

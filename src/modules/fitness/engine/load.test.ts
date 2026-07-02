@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { acwr, acwrBand, dailyLoadSeries, ewmaSeries, monotony, strain } from './load';
+import {
+  acwr,
+  acwrBand,
+  dailyLoadSeries,
+  ewmaSeries,
+  monotony,
+  monotonyBand,
+  monotonyDisplay,
+  strain,
+  weekLoadJumpBand,
+} from './load';
 
 describe('dailyLoadSeries', () => {
   it('fills rest days with a REAL 0 and sums multiple sessions per day', () => {
@@ -73,5 +83,32 @@ describe('monotony & strain (Foster)', () => {
   it('is null when every day is identical (SD = 0)', () => {
     expect(monotony([100, 100, 100, 100, 100, 100, 100])).toBeNull();
     expect(strain([100, 100, 100, 100, 100, 100, 100])).toBeNull();
+  });
+});
+
+describe('monotonyBand (Foster)', () => {
+  it('maps band boundaries: <1.5 ok, <=2 caution, >2 high', () => {
+    expect(monotonyBand(1.49)).toBe('ok');
+    expect(monotonyBand(1.5)).toBe('caution');
+    expect(monotonyBand(2.0)).toBe('caution');
+    expect(monotonyBand(2.01)).toBe('high');
+  });
+});
+
+describe('monotonyDisplay', () => {
+  it('rounds to 2 decimals below the cap and caps the SD-explosion range', () => {
+    expect(monotonyDisplay(1.4234)).toBe('1.42');
+    expect(monotonyDisplay(5)).toBe('5');
+    expect(monotonyDisplay(5.01)).toBe('>5');
+    expect(monotonyDisplay(38.39)).toBe('>5');
+  });
+});
+
+describe('weekLoadJumpBand', () => {
+  it('cautions only on jumps at/above the threshold — drops stay ok', () => {
+    expect(weekLoadJumpBand(29)).toBe('ok');
+    expect(weekLoadJumpBand(30)).toBe('caution');
+    expect(weekLoadJumpBand(85)).toBe('caution');
+    expect(weekLoadJumpBand(-40)).toBe('ok');
   });
 });

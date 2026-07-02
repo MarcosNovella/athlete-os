@@ -58,6 +58,36 @@ export function acwr(acute: number, chronic: number): number | null {
   return acute / chronic;
 }
 
+export type MonotonyBand = 'ok' | 'caution' | 'high';
+
+/** Foster monotony bands (ADR-012 semantics: heuristic FLAGS, never verdicts). */
+export function monotonyBand(value: number): MonotonyBand {
+  if (value < 1.5) return 'ok';
+  if (value <= 2) return 'caution';
+  return 'high';
+}
+
+/**
+ * Above this, the exact monotony number is numerically meaningless — the SD→0
+ * explosion (near-uniform weeks) produces values like 38.39 that read as data.
+ * Flags and the LLM briefing keep the RAW value; only human display is capped.
+ */
+export const MONOTONY_DISPLAY_CAP = 5;
+
+/** Human-facing monotony string: '1.42' … '>5'. Single source for app + briefing. */
+export function monotonyDisplay(value: number): string {
+  if (value > MONOTONY_DISPLAY_CAP) return `>${MONOTONY_DISPLAY_CAP}`;
+  return String(Math.round(value * 100) / 100);
+}
+
+/** Week-over-week load jump considered worth a caution tint (weekly table). */
+export const WEEK_LOAD_JUMP_CAUTION_PCT = 30;
+
+/** Caution on big POSITIVE jumps only — load drops are not the injury-risk signal here. */
+export function weekLoadJumpBand(deltaPct: number): 'ok' | 'caution' {
+  return deltaPct >= WEEK_LOAD_JUMP_CAUTION_PCT ? 'caution' : 'ok';
+}
+
 /** Sample standard deviation (n-1); null for fewer than 2 points. */
 function sampleSd(values: readonly number[]): number | null {
   if (values.length < 2) return null;

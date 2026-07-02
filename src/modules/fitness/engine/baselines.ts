@@ -36,6 +36,20 @@ export function zScore(value: number, baseline: Baseline): number | null {
   return (value - baseline.mean) / baseline.sd;
 }
 
+export type ZTier = 'way_below' | 'below' | 'typical' | 'above' | 'way_above';
+
+/**
+ * Magnitude tiers for z display: |z|<0.5 typical, 0.5–1.5 above/below,
+ * ≥1.5 way_above/way_below. Boundaries inclusive outward (0.5 → above).
+ */
+export function zTier(z: number): ZTier {
+  if (z <= -1.5) return 'way_below';
+  if (z <= -0.5) return 'below';
+  if (z < 0.5) return 'typical';
+  if (z < 1.5) return 'above';
+  return 'way_above';
+}
+
 /**
  * Readiness-drop flag (ADR-012): fires when the LAST `consecutive` days all
  * have z < `threshold` against each day's own trailing baseline.

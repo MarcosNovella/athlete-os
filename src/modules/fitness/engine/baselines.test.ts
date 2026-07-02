@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readinessDropFlag, trailingBaseline, zScore } from './baselines';
+import { readinessDropFlag, trailingBaseline, zScore, zTier } from './baselines';
 
 function seriesOf(values: number[], startDate = '2026-06-01'): { date: string; value: number }[] {
   return values.map((value, i) => {
@@ -45,6 +45,20 @@ describe('zScore', () => {
   it('computes standard deviations from the mean', () => {
     const base = { mean: 3, sd: 0.5, count: 10 };
     expect(zScore(2, base)).toBeCloseTo(-2);
+  });
+});
+
+describe('zTier', () => {
+  it('maps magnitude boundaries, inclusive outward at ±0.5 and ±1.5', () => {
+    expect(zTier(0)).toBe('typical');
+    expect(zTier(0.49)).toBe('typical');
+    expect(zTier(-0.49)).toBe('typical');
+    expect(zTier(0.5)).toBe('above');
+    expect(zTier(-0.5)).toBe('below');
+    expect(zTier(1.49)).toBe('above');
+    expect(zTier(1.5)).toBe('way_above');
+    expect(zTier(-1.5)).toBe('way_below');
+    expect(zTier(-2.78)).toBe('way_below');
   });
 });
 

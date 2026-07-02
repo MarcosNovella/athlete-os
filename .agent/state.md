@@ -3,11 +3,11 @@ Goal: MVP "Readiness Loop" — v1 FEATURE-COMPLETE; now in real-usage phase. DoD
 
 Log:
 - 2026-07-01 Session 1: scaffold → substrate → capture → engine → dashboards → $0 AI coach. All verify-GREEN (49 tests) + E2E across 3 tabs. Decisions ADR-001..016; guardrails G-000..004. Full episode: journal.md.
-- 2026-07-01 Session 2: PWA + offline queue (last D12 gap) — manifest+icons, hand-rolled sw.js, IndexedDB queue + <OfflineSync/> replay (ADR-017); guardrail G-005. verify GREEN (53 tests) + offline E2E 8/8 on prod build.
+- 2026-07-01 Session 2: PWA + offline queue (last D12 gap) — manifest+icons, hand-rolled sw.js, IndexedDB queue + <OfflineSync/> replay (ADR-017); guardrail G-005. verify GREEN (53 tests) + offline E2E 8/8 on prod build. THEN Vercel production deploy (ADR-018): LIVE at https://athlete-os-pink.vercel.app — prod smoke 4/4 (public login, PWA plumbing, Supabase+RLS, SW active).
 
-Last done: Session 2 PWA/offline shipped & committed. e2e user password rotated via SQL (throwaway).
+Last done: Vercel prod deploy smoke-tested live. Vercel CLI logged in as marcosnovella (device flow); project marcosnovellas-projects/athlete-os. e2e user password rotated via SQL (throwaway).
 
-Next: pick one: (a) Vercel deploy for brother's phone (now unblocked as full PWA); (b) first real /coach run once ~1wk of data exists; (c) synthesis reminder automation. Meanwhile the real test is daily capture by both users.
+Next: (a) install PWA on both phones (Thomas needs his password — SQL-seeded, may need a reset); (b) first real /coach run once ~1wk of data exists; (c) synthesis reminder automation; (d) optional: git remote + Vercel git integration, custom domain. DoD gate unchanged: 4-week capture habit.
 
 Open questions: -
 

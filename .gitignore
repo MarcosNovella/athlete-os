@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# publishable-by-design values only (Supabase URL + publishable key) — R3-safe
+!.env.production
 
 # vercel
 .vercel

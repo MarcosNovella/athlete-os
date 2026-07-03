@@ -33,3 +33,29 @@ Goal: ship to production. Since ADR-021: push to `main` = auto prod deploy (Verc
 integration); other branches get preview URLs. Manual `vercel deploy` (ADR-018) obsolete.
 Gotchas: prod smoke after deploy = public login + PWA plumbing (manifest/sw) + Supabase+RLS +
 SW active. .env.production is committed by design (publishable-only values; RLS is the boundary).
+
+## whoop-device-arrival (ADR-024)
+Goal: turn the fixture-validated Whoop connector into a real, working connection once
+Marcos/Thomas's Whoop devices actually arrive.
+Steps:
+1. Register a WHOOP developer account + app at the Whoop developer dashboard (≤5 apps per
+   account). Register BOTH redirect URIs up front: prod (`https://<domain>/api/whoop/callback`)
+   and localhost (for local testing) — Whoop requires pre-registered exact redirect URIs.
+2. Set `WHOOP_CLIENT_ID` / `WHOOP_CLIENT_SECRET` / `WHOOP_REDIRECT_URI` in Vercel env vars
+   (prod) AND `.env.local` (never commit — same rule as every other server secret, R3).
+   The moment these are set, `/fuentes` stops showing "Próximamente" for both users.
+3. Connect from SAFARI, not the installed PWA, on the first connect. The installed PWA and
+   Safari have separate cookie jars on iOS — the OAuth callback could arrive sessionless and
+   bounce to /login if connected from inside the installed app (documented risk #2 in the
+   plan). Escape hatch if this bites: exempt the callback route from the proxy auth matcher +
+   re-associate via the signed `state` cookie instead of session cookies — only build this if
+   the Safari workaround proves insufficient in practice.
+4. First sync backfills 30 days automatically (sync.ts's first-sync window) — expect a
+   `pnpm db:types`-fresh dashboard to populate Tendencias > Recuperación with real history
+   within the same session.
+5. Confirm the real payload shape matches `whoop/types.ts`'s tolerant Zod schemas — if Whoop's
+   actual v2 response has fields this repo's types.ts didn't anticipate, extend the schema
+   (loose objects mean extra fields are already tolerated; missing expected fields are not).
+Gotchas: this is the FIRST real OAuth flow in the repo — the fixture tests (map.test.ts,
+client.test.ts, sync.test.ts) validate the algorithm, not the actual Whoop API contract.
+Budget a small fix-forward session for whatever the real API does differently than documented.

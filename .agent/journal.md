@@ -185,3 +185,58 @@ Errors → guardrails born:
   last touched in the ADR-022 (V2.0) session, not this one. Flagged for a separate fix.
 
 > HARVESTED through Session 10 (2026-07-03) on 2026-07-03 → 0 ADRs (ADR-023 already filed inline), 0 new playbooks (skills.md already updated inline in M7), 1 candidate (C-012, new, seen_in 1 — not promotable), 1 memory (feedback: run harvest/query/lint proactively at milestones)
+
+## Session 11 — 2026-07-03 — V2.2 Passive Inputs: planned + built + hardened, all in one session
+
+Arc: planned V2.2 (plan-only per Marcos "me la pasas y frenamos ahí", plan approved at
+plans\vamos-a-planificar-la-lazy-meadow.md), then executed the full 5-milestone plan via
+/execute in a follow-up session on feat/passive-inputs, each milestone verify-GREEN
+(123→166 tests across the arc).
+
+M1 substrate: migration (5 recovery metrics, device_connections + import_batches RLS-first,
+import_observations atomic RPC — upsert-only, source='import' hardcoded so it can only
+converge onto other import rows) applied via MCP; ENGINE_METRICS + coach SQL allowlist
+extended same milestone (C-012 sync points). Seed narrative extended with two device
+batches (whoop/api, apple_health/file) through the REAL RPC — validated idempotent via
+MCP SQL spot-check (28 unique obs per metric after 2 runs, 0 dupes, 2 audit batches).
+
+M2 Apple HAE file import: tolerant Zod parser (unknown metrics ignored, malformed rows
+skipped+counted never fatal, both asleep/totalSleep field variants, same-day multi-sample
+averaging to avoid same-batch dedupe-key collisions), Server Action upload (4MB guard),
+new /fuentes 4th tab. Verified in-browser against the demo subject's seeded batch.
+
+M3 Whoop OAuth connector: full v2 integration (token exchange, rotation-aware refresh
+with invalid_grant detection, paginated recovery/sleep fetch, wake-date attribution via
+the linked sleep's end, conditional-UPDATE claim so only one caller syncs), env-gated
+null-config → "Próximamente" since devices are weeks away. Injected-deps design on
+sync.ts kept the algorithm testable without mocking the Supabase query builder. First
+route handler in the repo (/api/whoop/callback). Guardrail G-011 born here (see below).
+
+M4 surfacing: trends.ts recovery block (28d sparse series + baseline mean, no flag/
+snapshot changes), Tendencias "Recuperación" section (5 conditional charts, empty state
+→ "conectá una fuente"), briefing "## Recuperación (dato de dispositivo)" section,
+check-in sleep prefill (today's sleep_device, editable, only shown pre-check-in), 3
+glossary entries (vfc explains the RMSSD≠SDNN split). Verified via `pnpm briefing`
+against the demo subject's REAL seeded data (showed the week-4 recovery deterioration
+story) and in-browser Tendencias rendering.
+
+M5 hardening: E2E validated the /fuentes upload flow WITHOUT a committed Playwright
+file — no such file existed in the repo from prior sessions (past "E2E N/N" runs were
+ad-hoc browser-automation sessions, not committed tests) — instead drove the real
+Server Action end-to-end via the preview browser: constructed a synthetic HAE JSON File
+in-page (Blob → File → DataTransfer, no native file-picker automation needed), uploaded
+twice, confirmed via MCP SQL that the second upload converged (3 obs, no dupes, 4 audit
+batches). This temporarily overwrote the demo subject's crafted 2026-07-02 narrative
+values — re-ran `pnpm seed` afterward to restore them (confirmed via SQL). ADR-024 filed,
+roadmap.md marked V2.2 shipped, device-arrival ritual documented in skills.md.
+
+Errors → guardrails born:
+- [G-011] A `'use server'` file may ONLY export async functions — WHOOP_STATE_COOKIE
+  (a plain const) co-located in actions.ts broke the Next.js build ("Only async
+  functions are allowed to be exported in a 'use server' file"). Caught by in-browser
+  verification, NOT by tsc/vitest (the module graph error only surfaces at bundle time)
+  — reinforces why UI milestones need the browser check even when static verify is
+  green. Fixed by moving the constant to config.ts.
+
+Merge gate PENDING: branch pushed, Vercel preview not yet requested — Marcos to review
+before merge (per house style, no auto-merge without explicit approval).

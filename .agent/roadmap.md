@@ -1,7 +1,9 @@
 # Roadmap notes (V1.x interpretation layer + V2 direction)
 # Status: §A SHIPPED as ADR-022 (2026-07-02, session 8). §B's V2.1 OUTCOMES slice SHIPPED
-# as ADR-023 (2026-07-03, session 10). V2.2 (passive/wearables) and V2.3 (pattern
-# candidates) below are still DISCUSSED, not yet approved as ADRs. §C methodology active.
+# as ADR-023 (2026-07-03, session 10). §B's V2.2 PASSIVE INPUTS slice SHIPPED as ADR-024
+# (2026-07-03, session 11) — Whoop connector fixture-validated, real OAuth pending device
+# arrival (see skills.md ritual). V2.3 (pattern candidates) still DISCUSSED, not an ADR yet.
+# §C methodology active.
 # Constraint that orders everything: DoD gate = 4-week capture habit. Nothing may ADD
 # capture friction until the habit is proven. Interpretation first, passive data second,
 # manual capture last.
@@ -51,15 +53,13 @@ Proposed order (signal-per-friction):
   → e1RM trend; running: distance → pace trend since duration exists; rugby: post-match
   self-rating 1–5). Observation spine (ADR-007) makes each a new metric_key, no schema
   surgery. Also included nutrition ordinal (below) a version early, per Marcos's decision.
-- V2.2 PASSIVE inputs — wearables ANSWERED (Marcos 2026-07-02): Marcos has an Apple Watch
-  Series 10 TODAY; BOTH users will have Whoop in the near future. Implications:
-  * Whoop is the primary integration target: it has an official developer API (OAuth2,
-    recovery/sleep/HRV/strain endpoints + webhooks) — a server-side integration a PWA can
-    do cleanly. VERIFY current API terms/access tier at build time (knowledge may be stale).
-  * Apple Watch interim: HealthKit is native-app-only; bridge options for a PWA are
-    export-file import (Health app XML/CSV) or a pusher app (e.g. "Health Auto Export" →
-    REST endpoint). Decide at build time; don't build a native app for this.
-  * Objective sleep/HRV can eventually REPLACE manual sleep_hours entry (friction ↓).
+- V2.2 PASSIVE inputs — SHIPPED as ADR-024 (2026-07-03): 5 new recovery-domain metrics
+  (recovery_score/hrv_rmssd/hrv_sdnn/resting_hr/sleep_device) via a new raw/import path
+  (device_connections + import_batches tables, import_observations RPC). Apple bridge =
+  Health Auto Export file import (real data flowing from Marcos's Series 10). Whoop = full
+  OAuth2 connector, fixture-validated, env-gated "Próximamente" until devices arrive
+  (WHOOP_CLIENT_ID/SECRET/REDIRECT_URI unset). Device sleep prefills (not replaces) the
+  manual check-in field. Surfaced in Tendencias "Recuperación", briefing, glossary.
 - V2.3 PATTERN CANDIDATES engine: deterministic lagged associations over the spine
   (e.g. sleep<media → next-day readiness; monotony↑ → readiness trend), with effect size +
   n + confounder caveats, feeding /coach which labels them as HYPOTHESES (ADR-003 contract:

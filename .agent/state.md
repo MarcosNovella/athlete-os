@@ -21,9 +21,11 @@ Log:
 
 - 2026-07-02 Session 8: BUILT V2.0 interpretation layer (roadmap §A complete, all 9 items; ADR-022) on feat/interpretation-layer — 9 milestone commits, verify GREEN at each (85 tests, was 58). Engine: monotony band+display cap '>5', z tiers, strain rolling-4-week rank, prevWeek delta, acwr.yesterday ghost, signalSummary, trends acwr series + week deltas/isPartial. UI: AcwrGauge + ribbon (server SVG), 5-tier ZBadges, tinted WeeklyTable, glossary popover InfoTips (zero JS), 'N señales activas' cue; briefing tells the same story. Pre-work on main: pagination fix committed + .gitattributes eol=lf (G-009). Validation per §C: seed dry-run all-green + Playwright E2E 27/27 on prod build vs demo subject (mobile 390px incl. popover). Guardrails born: G-009 (line endings), G-010 (PYTHONIOENCODING). Branch pushed → Vercel preview; MERGE PENDING Marcos's real-iPhone check (plan gate).
 
-Last done: V2.0 MERGED to main (ff, Marcos approved "push de todo") + pushed → prod deploy READY (sha 9602663) — smoke 4/4 (login, manifest, sw.js, offline). V2.0 LIVE at https://athlete-os-pink.vercel.app.
+- 2026-07-03 Session 9: PLANNED V2.1 OUTCOMES (plan mode only, no code — Marcos: "frenate"). Plan APPROVED at C:\Users\Marcos\.claude\plans\vamos-a-planificar-el-bubbly-feigenbaum.md — 7 milestones on feat/outcomes (M1 migration+RPC replace → M2 schemas/emission/backfill-stagger fix → M3 forms+prefill → M4 trends.outcomes 90d → M5 Rendimiento UI+connectGaps → M6 briefing Resultados → M7 seed 324-obs+E2E+ADR-023+merge gate). Marcos's 4 decisions: fixed lift selector (squat/bench/deadlift/ohp+otro), bodyweight in check-in (collapsed), rugby partido-toggle+rating, nutrition ordinal INCLUDED now. Found pre-existing prod bug: backfilled same-day sessions collide on observations_dedupe (actions.ts anchors all at 12:00Z) — fix scoped into M2.
 
-Next: (a) first real /coach run once ~1wk of real data (briefing now interpreted); (b) synthesis reminder automation; (c) V2.1 OUTCOMES per roadmap §B when Marcos says go. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
+Last done: V2.1 plan approved by Marcos (ExitPlanMode) + this checkpoint. NO implementation started (explicit instruction).
+
+Next: implement V2.1 M1 (migration 20260703_outcomes.sql + apply via MCP + pnpm db:types) when Marcos says go.
 
 Open questions: -
 

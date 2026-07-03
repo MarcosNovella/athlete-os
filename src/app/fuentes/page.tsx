@@ -3,23 +3,52 @@ import { getCurrentSubject } from '@/core/subjects/service';
 import { createClient } from '@/lib/supabase/server';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { AppleImportCard } from '@/modules/fitness/integrations/AppleImportCard';
+import { getWhoopConfig } from '@/modules/fitness/integrations/whoop/config';
+import {
+  WhoopCard,
+  type WhoopCardConnection,
+} from '@/modules/fitness/integrations/whoop/WhoopCard';
+
+function toWhoopCardConnection(
+  row: {
+    status: string;
+    last_synced_at: string | null;
+    last_sync_status: string | null;
+  } | null,
+): WhoopCardConnection {
+  if (!row) return null;
+  return {
+    status: row.status === 'reauth_required' ? 'reauth_required' : 'connected',
+    last_synced_at: row.last_synced_at,
+    last_sync_status: row.last_sync_status,
+  };
+}
 
 export default async function FuentesPage() {
   const subject = await getCurrentSubject();
   if (!subject) redirect('/');
 
   const supabase = await createClient();
-  const latestApple = await supabase
-    .from('import_batches')
-    .select('id, file_name, observation_count, date_min, date_max, created_at')
-    .eq('subject_id', subject.id)
-    .eq('provider', 'apple_health')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-    .then((r) => r.data);
+  const [latestApple, whoopConnection] = await Promise.all([
+    supabase
+      .from('import_batches')
+      .select('id, file_name, observation_count, date_min, date_max, created_at')
+      .eq('subject_id', subject.id)
+      .eq('provider', 'apple_health')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then((r) => r.data),
+    supabase
+      .from('device_connections')
+      .select('status, last_synced_at, last_sync_status')
+      .eq('subject_id', subject.id)
+      .eq('provider', 'whoop')
+      .maybeSingle()
+      .then((r) => r.data),
+  ]);
 
-  const whoopEnabled = Boolean(process.env.WHOOP_CLIENT_ID);
+  const whoopEnabled = getWhoopConfig() !== null;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
@@ -34,21 +63,7 @@ export default async function FuentesPage() {
 
       <TabNav active="sources" />
 
-      <section className="rounded-xl border border-line bg-turf p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
-            Whoop
-          </h2>
-          <span className="rounded-full bg-turf-2 px-2 py-0.5 text-xs font-medium text-faint">
-            Próximamente
-          </span>
-        </div>
-        <p className="text-sm text-faint">
-          {whoopEnabled
-            ? 'Configurado — conexión disponible pronto en esta página.'
-            : 'Todavía no configurado. Se habilita cuando lleguen los relojes Whoop.'}
-        </p>
-      </section>
+      <WhoopCard enabled={whoopEnabled} connection={toWhoopCardConnection(whoopConnection)} />
 
       <AppleImportCard latestBatch={latestApple ?? null} />
     </main>

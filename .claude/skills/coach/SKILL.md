@@ -42,7 +42,13 @@ write them into the `insights` table so they render in the app's Coach tab.
          order by effective_date)
        from public.observations
        where subject_id = ':sid'
-         and metric_key in ('session_load','readiness','sleep_duration')
+         -- Mirrors ENGINE_METRICS in src/modules/fitness/engine/service.ts — keep
+         -- in sync, or outcomes silently vanish from the briefing (V2.1/ADR-023).
+         and metric_key in (
+           'session_load','readiness','sleep_duration',
+           'bodyweight','e1rm_squat','e1rm_bench','e1rm_deadlift','e1rm_ohp',
+           'running_pace','match_rating','nutrition_adherence','alcohol','caffeine'
+         )
          and effective_date >= (current_date - 90)), '[]'::json),
      'sessions', coalesce((
        select json_agg(json_build_object(

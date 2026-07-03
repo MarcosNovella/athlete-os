@@ -7,12 +7,13 @@ import {
   type EmittedObservation,
   sessionObservations,
 } from '../src/modules/fitness/capture/emission';
-import type { CheckInInput, SessionInput } from '../src/modules/fitness/capture/schemas';
+import type { CheckInInput, Lift, SessionInput } from '../src/modules/fitness/capture/schemas';
 import {
   computeSnapshot,
   type ObservationLite,
   signalSummary,
 } from '../src/modules/fitness/engine/snapshot';
+import { computeTrends } from '../src/modules/fitness/engine/trends';
 
 /**
  * Synthetic 28-day seed for a disposable DEMO subject (MVP validation).
@@ -82,6 +83,61 @@ function quarter(h: number): number {
   return Math.round(h * 4) / 4;
 }
 
+/** Round to 1 decimal (bodyweight/distance granularity). */
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+// --- V2.1 outcomes narrative (ADR-023) ---------------------------------------
+// Layered onto the same 28-day story WITHOUT touching duration_min/srpe, so
+// daily loads (and therefore all 3 V2.0 flags) stay byte-identical.
+
+/** i (0-indexed day) → bodyweight point. Baseline drift, +0.6 bump in overreach. */
+const BODYWEIGHT_DAYS = new Set([0, 4, 7, 11, 14, 18, 21, 25]);
+function bodyweightFor(i: number): number {
+  const trend = 80.6 - 0.05 * i;
+  return round1(i >= 21 ? trend + 0.6 : trend);
+}
+
+function nutritionAdherenceFor(dayNum: number, i: number): number {
+  if (dayNum < 22) return i % 2 === 0 ? 5 : 4;
+  const step = dayNum - 22; // 0..6
+  return step < 4 ? 3 : 2;
+}
+
+const ALCOHOL_DAYS = new Set([13, 24, 26]);
+
+/** i → named-lift top set for the baseline gym days (creeping weights). */
+const BASELINE_LIFT: Record<number, { lift: Lift; weightKg: number; reps: number }> = {
+  0: { lift: 'squat', weightKg: 100, reps: 5 },
+  6: { lift: 'bench', weightKg: 70, reps: 5 },
+  9: { lift: 'squat', weightKg: 107.5, reps: 5 },
+  12: { lift: 'deadlift', weightKg: 120, reps: 5 },
+  18: { lift: 'bench', weightKg: 75, reps: 5 },
+};
+
+/** i → rugby match rating for baseline days (training days stay untagged). */
+const BASELINE_MATCH_RATING: Record<number, number> = { 2: 4, 14: 5, 20: 4 };
+
+/** i → target pace (min/km) for baseline running days — steady easy pace. */
+const BASELINE_RUNNING_PACE: Record<number, number> = {
+  1: 5.1,
+  4: 5.2,
+  10: 5.0,
+  13: 5.3,
+  16: 5.15,
+};
+
+/** i → rugby match rating for overreach days not reassigned to gym/running. */
+const OVERREACH_MATCH_RATING: Record<number, number> = { 24: 2 };
+
+type SessionOutcomeExtra = Partial<
+  Pick<
+    SessionInput,
+    'lift' | 'top_set_weight_kg' | 'top_set_reps' | 'distance_km' | 'is_match' | 'match_rating'
+  >
+>;
+
 // --- narrative generation ----------------------------------------------------
 
 function generateDays(subjectId: string, today: string): PlannedDay[] {
@@ -114,8 +170,10 @@ function baselineCheckin(date: string, i: number): CheckInInput {
     readiness,
     soreness: 1 + (i % 2), // 1 or 2
     stress: i % 3 === 0 ? 2 : 1,
-    alcohol: false,
-    caffeine: false,
+    bodyweight_kg: BODYWEIGHT_DAYS.has(i) ? bodyweightFor(i) : undefined,
+    nutrition_adherence: nutritionAdherenceFor(i + 1, i),
+    alcohol: ALCOHOL_DAYS.has(i),
+    caffeine: i % 2 === 0,
   };
 }
 
@@ -125,7 +183,23 @@ function baselineSessions(subjectId: string, date: string, i: number): PlannedSe
   const srpe = 4 + (i % 3); // 4..6
   const durationMin = 50 + (i % 4) * 10; // 50..80
   const modality = MODALITIES[i % 3] ?? 'gym';
-  return [buildSession(subjectId, date, 0, modality, durationMin, srpe)];
+
+  let extra: SessionOutcomeExtra = {};
+  const namedLift = BASELINE_LIFT[i];
+  if (modality === 'gym' && namedLift) {
+    extra = {
+      lift: namedLift.lift,
+      top_set_weight_kg: namedLift.weightKg,
+      top_set_reps: namedLift.reps,
+    };
+  } else if (modality === 'rugby' && i in BASELINE_MATCH_RATING) {
+    extra = { is_match: true, match_rating: BASELINE_MATCH_RATING[i] };
+  } else if (modality === 'running' && i in BASELINE_RUNNING_PACE) {
+    const target = BASELINE_RUNNING_PACE[i] as number;
+    extra = { distance_km: round1(durationMin / target) };
+  }
+
+  return [buildSession(subjectId, date, 0, modality, durationMin, srpe, extra)];
 }
 
 /** Days 22–28: poor sleep, readiness stepping down to 2 on the last two days. */
@@ -134,6 +208,7 @@ function overreachingCheckin(date: string, dayNum: number): CheckInInput {
   if (dayNum >= 27) readiness = 2;
   else if (dayNum >= 25) readiness = 3;
   const step = dayNum - 22; // 0..6
+  const i = dayNum - 1;
   return {
     date,
     sleep_hours: quarter(6.5 - step * 0.15), // ~6.5 → ~5.6
@@ -141,16 +216,53 @@ function overreachingCheckin(date: string, dayNum: number): CheckInInput {
     readiness,
     soreness: 4 + (step % 2), // 4 or 5
     stress: 3 + (step % 2), // 3 or 4
-    alcohol: false,
-    caffeine: false,
+    bodyweight_kg: BODYWEIGHT_DAYS.has(i) ? bodyweightFor(i) : undefined,
+    nutrition_adherence: nutritionAdherenceFor(dayNum, i),
+    alcohol: ALCOHOL_DAYS.has(i),
+    caffeine: i % 2 === 0,
   };
 }
 
-/** Days 22–28: one sustained high session daily, low variance → high monotony. */
+/**
+ * Days 22–28: one sustained high session daily, low variance → high monotony.
+ * duration/srpe are UNCHANGED from the pre-V2.1 formula (daily loads — and
+ * therefore all 3 V2.0 flags — stay byte-identical); only 3 days are
+ * reassigned to a different modality to exercise gym/running outcomes, which
+ * doesn't affect session_load.
+ */
 function overreachingSessions(subjectId: string, date: string, i: number): PlannedSession[] {
   const srpe = 8;
   const durationMin = 82 + (i % 4) * 2; // 82..88 → loads ~656..704
-  return [buildSession(subjectId, date, 0, 'rugby', durationMin, srpe)];
+
+  if (i === 22) {
+    // Gym squat with fewer reps than the baseline PR — a visible e1RM stall.
+    return [
+      buildSession(subjectId, date, 0, 'gym', durationMin, srpe, {
+        lift: 'squat',
+        top_set_weight_kg: 110,
+        top_set_reps: 4,
+      }),
+    ];
+  }
+  if (i === 23) {
+    const distanceKm = round1(durationMin / 6.2); // pace target ~6.2 min/km, slowing
+    return [
+      buildSession(subjectId, date, 0, 'running', durationMin, srpe, { distance_km: distanceKm }),
+    ];
+  }
+  if (i === 25) {
+    return [
+      buildSession(subjectId, date, 0, 'gym', durationMin, srpe, {
+        lift: 'bench',
+        top_set_weight_kg: 76,
+        top_set_reps: 4,
+      }),
+    ];
+  }
+
+  const extra: SessionOutcomeExtra =
+    i in OVERREACH_MATCH_RATING ? { is_match: true, match_rating: OVERREACH_MATCH_RATING[i] } : {};
+  return [buildSession(subjectId, date, 0, 'rugby', durationMin, srpe, extra)];
 }
 
 /** Build a session with a deterministic id and a per-slot backfill instant. */
@@ -161,6 +273,7 @@ function buildSession(
   modality: (typeof MODALITIES)[number],
   durationMin: number,
   srpe: number,
+  extra: SessionOutcomeExtra = {},
 ): PlannedSession {
   const id = deterministicUuid(`${subjectId}:${date}:${slot}`);
   // Distinct hour per slot so same-day sessions never collide on the
@@ -174,6 +287,7 @@ function buildSession(
     duration_min: durationMin,
     srpe,
     is_match: false,
+    ...extra,
   };
   return { input, startedAt };
 }
@@ -227,6 +341,26 @@ function previewSnapshot(days: PlannedDay[], today: string): void {
   } else {
     console.log('  ✓ all three target flags fire on today');
   }
+}
+
+/** V2.1 (ADR-023): validates the outcomes path end-to-end before any DB write. */
+function previewOutcomes(days: PlannedDay[], today: string): void {
+  const { outcomes } = computeTrends(allObservations(days), today);
+  console.log('— Outcomes preview (computed by the real trends code) —');
+  console.log(
+    `  bodyweight: ${outcomes.bodyweight.points.length} pts, last=${JSON.stringify(outcomes.bodyweight.last)}`,
+  );
+  for (const lift of ['squat', 'bench', 'deadlift', 'ohp'] as const) {
+    const s = outcomes.e1rm[lift];
+    console.log(`  e1rm.${lift}: ${s.points.length} pts, last=${JSON.stringify(s.last)}`);
+  }
+  console.log(
+    `  pace: ${outcomes.pace.points.length} pts, last=${JSON.stringify(outcomes.pace.last)}, mean=${outcomes.pace.mean}`,
+  );
+  console.log(
+    `  matchRating: ${outcomes.matchRating.points.length} pts, last=${JSON.stringify(outcomes.matchRating.last)}, mean=${outcomes.matchRating.mean}`,
+  );
+  console.log(`  nutrition7d: ${JSON.stringify(outcomes.nutrition7d)}`);
 }
 
 // --- DB write path (auth + RPC) ----------------------------------------------
@@ -302,6 +436,12 @@ async function writeDays(
           srpe: s.input.srpe,
           notes: null,
           backfilled: true,
+          lift: s.input.lift ?? null,
+          top_set_weight_kg: s.input.top_set_weight_kg ?? null,
+          top_set_reps: s.input.top_set_reps ?? null,
+          distance_km: s.input.distance_km ?? null,
+          is_match: s.input.is_match,
+          match_rating: s.input.match_rating ?? null,
         },
         observations: sessionObservations(s.input, s.startedAt, true),
       });
@@ -353,6 +493,7 @@ async function main(): Promise<void> {
     const days = generateDays('dry-run-subject', today);
     console.log(`Generated 28 days ending ${today} (dry run — no DB writes).`);
     previewSnapshot(days, today);
+    previewOutcomes(days, today);
     return;
   }
 
@@ -366,6 +507,7 @@ async function main(): Promise<void> {
 
   const days = generateDays(subjectId, today);
   previewSnapshot(days, today);
+  previewOutcomes(days, today);
   await writeDays(supabase, days, subjectId);
 
   console.log('Done. Log in as the demo user to see unlocks + flags in-app.');

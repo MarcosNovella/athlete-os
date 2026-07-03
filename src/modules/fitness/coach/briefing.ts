@@ -1,6 +1,7 @@
+import { formatPace } from '@/modules/fitness/capture/emission';
 import { formatDeltaPct } from '@/modules/fitness/engine/load';
 import type { EngineSnapshot, StrainState } from '@/modules/fitness/engine/snapshot';
-import type { TrendsData } from '@/modules/fitness/engine/trends';
+import type { OutcomeSeries, TrendsData } from '@/modules/fitness/engine/trends';
 
 /**
  * Deterministic AI briefing (ADR-016): the stable interface between the
@@ -35,6 +36,13 @@ const MONOTONY_BAND_ES: Record<'ok' | 'caution' | 'high', string> = {
   ok: 'ok',
   caution: 'precaución',
   high: 'alta',
+};
+
+const LIFT_LABEL_ES: Record<'squat' | 'bench' | 'deadlift' | 'ohp', string> = {
+  squat: 'sentadilla',
+  bench: 'banca',
+  deadlift: 'peso muerto',
+  ohp: 'press militar',
 };
 
 const TIER_ES: Record<string, string> = {
@@ -122,6 +130,8 @@ export function buildBriefing({
     }
   }
 
+  lines.push('', '## Resultados (outcomes)', ...outcomesLines(t));
+
   lines.push(
     '',
     '## Completitud de datos',
@@ -141,6 +151,73 @@ export function buildBriefing({
   );
 
   return lines.join('\n');
+}
+
+function outcomesLines(t: TrendsData): string[] {
+  const o = t.outcomes;
+  const lines: string[] = [];
+
+  if (o.bodyweight.last !== null) {
+    lines.push(
+      `- Peso corporal: ${o.bodyweight.last.value} kg (${o.bodyweight.last.date})${deltaSuffix(o.bodyweight, 'kg')}`,
+    );
+  }
+
+  for (const lift of ['squat', 'bench', 'deadlift', 'ohp'] as const) {
+    const series = o.e1rm[lift];
+    if (series.last !== null) {
+      lines.push(
+        `- e1RM ${LIFT_LABEL_ES[lift]}: ${series.last.value} kg (${series.last.date})${deltaSuffix(series, 'kg')}`,
+      );
+    }
+  }
+
+  if (o.pace.last !== null) {
+    const meanPhrase =
+      o.pace.mean !== null
+        ? ` · media 90d: ${formatPace(o.pace.mean)} — ${
+            o.pace.last.value < o.pace.mean
+              ? 'más rápido que tu media'
+              : o.pace.last.value > o.pace.mean
+                ? 'más lento que tu media'
+                : 'igual a tu media'
+          }`
+        : '';
+    lines.push(
+      `- Ritmo (running): ${formatPace(o.pace.last.value)} min/km (${o.pace.last.date})${meanPhrase}`,
+    );
+  }
+
+  if (o.matchRating.last !== null) {
+    const n = o.matchRating.points.length;
+    const meanPhrase =
+      o.matchRating.mean !== null
+        ? ` · media ${o.matchRating.mean} en ${n} partido${n === 1 ? '' : 's'}`
+        : '';
+    lines.push(
+      `- Último partido: ${o.matchRating.last.value}/5 (${o.matchRating.last.date})${meanPhrase}`,
+    );
+  }
+
+  const n7 = o.nutrition7d;
+  if (n7.checkinDays > 0) {
+    const adherence =
+      n7.adherenceAvg !== null
+        ? `adherencia prom ${n7.adherenceAvg}/5 (${n7.checkinDays} check-ins)`
+        : `${n7.checkinDays} check-ins, sin datos de adherencia`;
+    lines.push(
+      `- Nutrición últimos 7 días: ${adherence} · alcohol ${n7.alcoholDays} día${n7.alcoholDays === 1 ? '' : 's'} · cafeína ${n7.caffeineDays} día${n7.caffeineDays === 1 ? '' : 's'}`,
+    );
+  }
+
+  if (lines.length === 0) lines.push('- Sin registros de outcomes todavía.');
+  return lines;
+}
+
+function deltaSuffix(series: OutcomeSeries, unit: string): string {
+  if (series.deltaVsPrev === null) return ' · primer registro';
+  const sign = series.deltaVsPrev >= 0 ? '+' : '−';
+  return ` · Δ ${sign}${Math.abs(series.deltaVsPrev)} ${unit} vs registro anterior`;
 }
 
 function metricLine(label: string, state: EngineSnapshot['readiness'], unit: string): string {

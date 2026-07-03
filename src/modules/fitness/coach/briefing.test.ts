@@ -76,6 +76,48 @@ describe('buildBriefing', () => {
     expect(b).toContain('(parcial)'); // running week marked softly
   });
 
+  it('falls back honestly when there are no outcomes yet', () => {
+    const b = briefingFor(29);
+    expect(b).toContain('## Resultados (outcomes)');
+    expect(b).toContain('Sin registros de outcomes todavía.');
+  });
+
+  it('renders outcome lines with deltas, PR-lift labels, pace wording and nutrition rollup', () => {
+    const { obs, today } = fixture(29);
+    obs.push(
+      { metric_key: 'bodyweight', value: 82.4, effective_date: dateAt('2026-06-01', 0) },
+      { metric_key: 'bodyweight', value: 81.8, effective_date: dateAt('2026-06-01', 10) },
+      { metric_key: 'e1rm_squat', value: 152.5, effective_date: dateAt('2026-06-01', 0) },
+      { metric_key: 'running_pace', value: 5.25, effective_date: dateAt('2026-06-01', 0) },
+      { metric_key: 'running_pace', value: 5.5, effective_date: dateAt('2026-06-01', 20) },
+      { metric_key: 'match_rating', value: 4, effective_date: dateAt('2026-06-01', 5) },
+    );
+    for (let i = 22; i < 29; i++) {
+      obs.push({
+        metric_key: 'nutrition_adherence',
+        value: 4,
+        effective_date: dateAt('2026-06-01', i),
+      });
+      obs.push({ metric_key: 'alcohol', value: 0, effective_date: dateAt('2026-06-01', i) });
+      obs.push({ metric_key: 'caffeine', value: 1, effective_date: dateAt('2026-06-01', i) });
+    }
+    const b = buildBriefing({
+      displayName: 'Marcos',
+      snapshot: computeSnapshot(obs, today),
+      trends: computeTrends(obs, today),
+      recentSessions: [],
+    });
+    expect(b).toContain('Peso corporal: 81.8 kg');
+    expect(b).toContain('Δ −0.6 kg vs registro anterior');
+    expect(b).toContain('e1RM sentadilla: 152.5 kg');
+    expect(b).toContain('primer registro'); // e1rm has a single point
+    expect(b).toContain('Ritmo (running): 5:30 min/km');
+    expect(b).toContain('más lento que tu media');
+    expect(b).toContain('Último partido: 4/5');
+    expect(b).toMatch(/Nutrición últimos 7 días: adherencia prom 4\/5 \(\d+ check-ins\)/);
+    expect(b).toContain('cafeína 7 días');
+  });
+
   it('caps the monotony display but keeps the exact value for the LLM', () => {
     const start = '2026-06-01';
     const obs: ObservationLite[] = [];

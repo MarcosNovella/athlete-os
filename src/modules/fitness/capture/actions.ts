@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentSubject } from '@/core/subjects/service';
 import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
-import { checkInObservations, dailyEffectiveAt, sessionObservations } from './emission';
+import { checkInObservations, sessionObservations, staggeredBackfillInstant } from './emission';
 import { checkInInput, sessionInput } from './schemas';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -52,9 +52,11 @@ export async function saveSession(raw: unknown): Promise<ActionResult> {
   if (!window.ok) return { ok: false, error: 'Solo se puede registrar hoy o ayer.' };
 
   // Today's sessions anchor at the real save moment; backfilled ones at the
-  // canonical daily instant (deterministic under the dedupe key, ADR-011).
+  // canonical daily instant + a deterministic per-id stagger (ADR-011 dedupe
+  // key is (subject, metric, effective_at, source) — two backfilled sessions
+  // on the same yesterday would otherwise collide on session_load and fail).
   const startedAt = window.backfilled
-    ? dailyEffectiveAt(parsed.data.date)
+    ? staggeredBackfillInstant(parsed.data.date, parsed.data.id)
     : new Date().toISOString();
 
   const supabase = await createClient();
@@ -69,6 +71,12 @@ export async function saveSession(raw: unknown): Promise<ActionResult> {
       srpe: parsed.data.srpe,
       notes: parsed.data.notes ?? null,
       backfilled: window.backfilled,
+      lift: parsed.data.lift ?? null,
+      top_set_weight_kg: parsed.data.top_set_weight_kg ?? null,
+      top_set_reps: parsed.data.top_set_reps ?? null,
+      distance_km: parsed.data.distance_km ?? null,
+      is_match: parsed.data.is_match,
+      match_rating: parsed.data.match_rating ?? null,
     },
     observations: sessionObservations(parsed.data, startedAt, window.backfilled),
   });

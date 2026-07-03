@@ -114,6 +114,8 @@ function baselineCheckin(date: string, i: number): CheckInInput {
     readiness,
     soreness: 1 + (i % 2), // 1 or 2
     stress: i % 3 === 0 ? 2 : 1,
+    alcohol: false,
+    caffeine: false,
   };
 }
 
@@ -139,6 +141,8 @@ function overreachingCheckin(date: string, dayNum: number): CheckInInput {
     readiness,
     soreness: 4 + (step % 2), // 4 or 5
     stress: 3 + (step % 2), // 3 or 4
+    alcohol: false,
+    caffeine: false,
   };
 }
 
@@ -163,7 +167,14 @@ function buildSession(
   // observations unique(subject, metric, effective_at, source) key.
   const hour = [13, 22][slot] ?? 13;
   const startedAt = `${date}T${String(hour).padStart(2, '0')}:00:00.000Z`;
-  const input: SessionInput = { id, date, modality, duration_min: durationMin, srpe };
+  const input: SessionInput = {
+    id,
+    date,
+    modality,
+    duration_min: durationMin,
+    srpe,
+    is_match: false,
+  };
   return { input, startedAt };
 }
 

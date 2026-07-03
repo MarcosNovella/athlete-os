@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentSubject } from '@/core/subjects/service';
 import { addDaysIso } from '@/lib/dates';
+import { formatPace } from '@/modules/fitness/capture/emission';
 import { AcwrChart, LoadChart, MetricChart } from '@/modules/fitness/dashboard/charts';
 import { InfoTip } from '@/modules/fitness/dashboard/InfoTip';
 import { SignalsCue } from '@/modules/fitness/dashboard/SignalsCue';
@@ -8,6 +9,13 @@ import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { WeeklyTable } from '@/modules/fitness/dashboard/WeeklyTable';
 import { getEngineSnapshot, getTrends } from '@/modules/fitness/engine/service';
 import { signalSummary } from '@/modules/fitness/engine/snapshot';
+
+const LIFT_LABEL = {
+  squat: 'Sentadilla',
+  bench: 'Banca',
+  deadlift: 'Peso muerto',
+  ohp: 'Press militar',
+} as const;
 
 export default async function TrendsPage() {
   const subject = await getCurrentSubject();
@@ -20,6 +28,13 @@ export default async function TrendsPage() {
   const sleepValues = t.sleep.map((v) => v.value);
   const sleepMin = Math.max(0, Math.floor(Math.min(6, ...sleepValues)) - 1);
   const sleepMax = Math.ceil(Math.max(9, ...sleepValues)) + 1;
+
+  const windowStart90 = addDaysIso(t.today, -89);
+  const { outcomes } = t;
+  const bodyweightValues = outcomes.bodyweight.points.map((p) => p.value);
+  const lifts = (['squat', 'bench', 'deadlift', 'ohp'] as const).filter(
+    (l) => outcomes.e1rm[l].points.length >= 2,
+  );
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
@@ -93,6 +108,114 @@ export default async function TrendsPage() {
           mean={t.readinessMean}
           strokeClass="stroke-ok"
           label="Readiness últimos 28 días"
+        />
+      </section>
+
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            Peso corporal
+          </h2>
+          <span className="font-mono text-[10px] text-faint">últimos 90 días</span>
+        </div>
+        <MetricChart
+          points={outcomes.bodyweight.points}
+          windowStart={windowStart90}
+          today={t.today}
+          yMin={bodyweightValues.length > 0 ? Math.min(...bodyweightValues) - 1 : 0}
+          yMax={bodyweightValues.length > 0 ? Math.max(...bodyweightValues) + 1 : 1}
+          mean={null}
+          strokeClass="stroke-chalk"
+          label="Peso corporal últimos 90 días"
+          connectGaps
+        />
+      </section>
+
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            <span>e1RM</span>
+            <InfoTip term="e1rm" id="trends" />
+          </h2>
+          <span className="font-mono text-[10px] text-faint">últimos 90 días</span>
+        </div>
+        {lifts.length === 0 ? (
+          <p className="text-sm text-faint">Sin datos todavía.</p>
+        ) : (
+          <div className="space-y-4">
+            {lifts.map((l) => {
+              const series = outcomes.e1rm[l];
+              const values = series.points.map((p) => p.value);
+              return (
+                <div key={l}>
+                  <span className="mb-1 block text-xs text-dim">{LIFT_LABEL[l]}</span>
+                  <MetricChart
+                    points={series.points}
+                    windowStart={windowStart90}
+                    today={t.today}
+                    yMin={Math.min(...values) - 5}
+                    yMax={Math.max(...values) + 5}
+                    mean={null}
+                    strokeClass="stroke-flood"
+                    label={`e1RM ${LIFT_LABEL[l]} últimos 90 días`}
+                    connectGaps
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            <span>Ritmo</span>
+            <InfoTip term="ritmo" id="trends" />
+          </h2>
+          {outcomes.pace.last !== null ? (
+            <span className="font-mono text-[10px] text-faint">
+              último {formatPace(outcomes.pace.last.value)} /km
+              {outcomes.pace.mean !== null ? ` · media ${formatPace(outcomes.pace.mean)}` : ''}
+            </span>
+          ) : null}
+        </div>
+        <MetricChart
+          points={outcomes.pace.points}
+          windowStart={windowStart90}
+          today={t.today}
+          yMin={
+            outcomes.pace.points.length > 0
+              ? Math.min(...outcomes.pace.points.map((p) => p.value)) - 0.5
+              : 0
+          }
+          yMax={
+            outcomes.pace.points.length > 0
+              ? Math.max(...outcomes.pace.points.map((p) => p.value)) + 0.5
+              : 1
+          }
+          mean={outcomes.pace.mean}
+          strokeClass="stroke-chalk"
+          label="Ritmo últimos 90 días"
+          connectGaps
+        />
+      </section>
+
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-2 flex items-baseline justify-between font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          <span>Partidos</span>
+          <span className="font-mono text-[10px] text-faint">últimos 90 días</span>
+        </h2>
+        <MetricChart
+          points={outcomes.matchRating.points}
+          windowStart={windowStart90}
+          today={t.today}
+          yMin={1}
+          yMax={5}
+          mean={outcomes.matchRating.mean}
+          strokeClass="stroke-ok"
+          label="Autoevaluación de partidos últimos 90 días"
+          connectGaps
         />
       </section>
 

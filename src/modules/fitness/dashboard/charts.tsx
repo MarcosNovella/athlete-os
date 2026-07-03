@@ -316,6 +316,7 @@ export function MetricChart({
   mean,
   strokeClass,
   label,
+  connectGaps = false,
 }: {
   points: ReadonlyArray<DatedValue>;
   windowStart: string;
@@ -325,6 +326,9 @@ export function MetricChart({
   mean: number | null;
   strokeClass: string;
   label: string;
+  /** Sparse series (e.g. bodyweight 2x/week) render as one connected line
+   * instead of isolated dots. Default false keeps dense 28d series unchanged. */
+  connectGaps?: boolean;
 }) {
   if (points.length === 0) return <p className="text-sm text-faint">Sin datos todavía.</p>;
 
@@ -333,9 +337,11 @@ export function MetricChart({
   const x = (date: string) => PLOT_LEFT + diffDays(windowStart, date) * step + step / 2;
   const height = 120;
   const bottom = height - 18;
-  const y = (v: number) => bottom - ((v - yMin) / (yMax - yMin)) * (bottom - 8);
+  // A flat series (yMax === yMin) would divide by zero → NaN paths; pad it.
+  const [loY, hiY] = yMax === yMin ? [yMin - 1, yMax + 1] : [yMin, yMax];
+  const y = (v: number) => bottom - ((v - loY) / (hiY - loY)) * (bottom - 8);
 
-  const segments = splitConsecutive(points);
+  const segments = connectGaps ? [[...points]] : splitConsecutive(points);
 
   return (
     <svg viewBox={`0 0 ${W} ${height}`} className="w-full" role="img" aria-label={label}>

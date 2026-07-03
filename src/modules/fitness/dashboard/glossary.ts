@@ -13,7 +13,9 @@ export type GlossaryKey =
   | 'strain'
   | 'z'
   | 'baseline'
-  | 'readiness';
+  | 'readiness'
+  | 'e1rm'
+  | 'ritmo';
 
 export const GLOSSARY: Record<GlossaryKey, { term: string; definition: string }> = {
   acwr: {
@@ -60,5 +62,15 @@ export const GLOSSARY: Record<GlossaryKey, { term: string; definition: string }>
     term: 'Readiness',
     definition:
       'Cómo te sentís para entrenar hoy, de 1 a 5, según tu check-in. Es subjetivo a propósito: tu percepción es el dato.',
+  },
+  e1rm: {
+    term: 'e1RM',
+    definition:
+      'Fuerza máxima estimada (1 repetición) a partir del peso y las reps de tu serie tope, con la fórmula de Epley. Es una estimación, no un test real de 1RM.',
+  },
+  ritmo: {
+    term: 'Ritmo',
+    definition:
+      'Minutos por kilómetro en una sesión de running. Más bajo es más rápido — se compara contra tu propia media, no contra una tabla.',
   },
 };

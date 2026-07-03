@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { AcwrChart, AcwrGauge, GAUGE_MAX, gaugeX } from './charts';
+import { AcwrChart, AcwrGauge, GAUGE_MAX, gaugeX, MetricChart } from './charts';
 
 describe('gaugeX', () => {
   it('is monotonic on the 0→2 track and clamps outside it', () => {
@@ -50,6 +50,81 @@ describe('AcwrChart', () => {
   it('shows the empty state text when the series is empty', () => {
     const { container } = render(
       <AcwrChart points={[]} windowStart="2026-06-01" today="2026-06-28" />,
+    );
+    expect(container.textContent).toContain('Sin datos');
+  });
+});
+
+describe('MetricChart', () => {
+  const sparsePoints = [
+    { date: '2026-06-01', value: 82.0 },
+    // gap of several days — a dense chart would break the line here
+    { date: '2026-06-10', value: 81.5 },
+  ];
+
+  it('breaks the line at gaps by default', () => {
+    const { container } = render(
+      <MetricChart
+        points={sparsePoints}
+        windowStart="2026-06-01"
+        today="2026-06-10"
+        yMin={80}
+        yMax={83}
+        mean={null}
+        strokeClass="stroke-chalk"
+        label="test"
+      />,
+    );
+    // Each point is its own segment (no consecutive day pair) → 2 polylines.
+    expect(container.querySelectorAll('polyline').length).toBe(2);
+  });
+
+  it('connects gaps into one line when connectGaps is set', () => {
+    const { container } = render(
+      <MetricChart
+        points={sparsePoints}
+        windowStart="2026-06-01"
+        today="2026-06-10"
+        yMin={80}
+        yMax={83}
+        mean={null}
+        strokeClass="stroke-chalk"
+        label="test"
+        connectGaps
+      />,
+    );
+    expect(container.querySelectorAll('polyline').length).toBe(1);
+  });
+
+  it('pads a flat series (yMax === yMin) instead of producing NaN paths', () => {
+    const { container } = render(
+      <MetricChart
+        points={[{ date: '2026-06-01', value: 5 }]}
+        windowStart="2026-06-01"
+        today="2026-06-01"
+        yMin={5}
+        yMax={5}
+        mean={null}
+        strokeClass="stroke-chalk"
+        label="test"
+      />,
+    );
+    const circle = container.querySelector('circle');
+    expect(circle?.getAttribute('cy')).not.toContain('NaN');
+  });
+
+  it('shows the empty state text when the series is empty', () => {
+    const { container } = render(
+      <MetricChart
+        points={[]}
+        windowStart="2026-06-01"
+        today="2026-06-10"
+        yMin={0}
+        yMax={5}
+        mean={null}
+        strokeClass="stroke-chalk"
+        label="test"
+      />,
     );
     expect(container.textContent).toContain('Sin datos');
   });

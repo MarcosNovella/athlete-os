@@ -110,3 +110,33 @@ framing, weekly-table tinting, tappable info glossary), §B V2 sequencing APPROV
 Wearables: both users getting Whoop soon → Whoop API = primary V2.2 target.
 
 > HARVESTED through Session 6 (2026-07-02) on 2026-07-02 → 0 ADRs (all 21 already filed), 3 playbooks (skills.md created), 8 candidates C-001..C-008 (all new, seen_in 1 — none promotable), 1 memory updated (llm-wiki-knowledge-loop)
+
+## Session 7 — 2026-07-02 — Knowledge loop complete (harness work, no product code)
+
+Arc: built the full 2026-06-26 design in one sitting — /harvest (milestone distillation,
+inaugural run backfilled this journal S2-S6 + seeded global candidates C-001..C-008),
+/query (query-file-back w/ strict cost/recurrence/stability bar), /lint-knowledge
+(cross-scope: dups/contradictions/stale/orphans/conventions), and /scaffold's "Inherit
+knowledge" step (candidates load into new repos' guardrails at boot; inheritance ≠
+seen_in evidence). ≥2-projects promotion bar SETTLED by Marcos. Inaugural lint: clean;
+its one false positive became G-008 + C-009 (bash backslash-escapes-$ in double quotes).
+
+## Session 8 — 2026-07-02 — V2.0 interpretation layer: built, E2E'd, LIVE
+
+Arc: roadmap §A complete (all 9 items, ADR-022) on feat/interpretation-layer, 9
+milestone commits each verify-GREEN (58→85 tests). Engine owns ALL interpretation
+(bands/cap '>5'/z tiers/strain rank/deltas/ghost/signalSummary); UI renders (gauge +
+ribbon server-SVG, 5-tier badges, tinted weekly table, popover glossary, señales cue);
+briefing tells the same story. Pre-work landed on main: PostgREST pagination fix
+(uncommitted diff found at session start) + .gitattributes eol=lf. Validation per §C:
+seed dry-run all-green + Playwright E2E 27/27 vs prod build (incl. 390px + popover
+light-dismiss). Merged ff + pushed (Marcos: "push de todo") → prod deploy READY, smoke
+4/4. V2.0 LIVE.
+
+Errors → guardrails born:
+- G-009 verify opened RED on committed-clean files: autocrlf smudged CRLF vs Biome's LF
+  — .gitattributes `* text=auto eol=lf` makes checkouts byte-stable (candidate C-010).
+- G-010 E2E results print died on 'Δ' under cp1252 and masked the outcome twice — run
+  Python that prints non-ASCII with PYTHONIOENCODING=utf-8 on Windows (candidate C-011).
+- G-002 struck twice more (zombie node holding :3000 across with_server runs) — the
+  existing guardrail's kill-first ritual resolved both.

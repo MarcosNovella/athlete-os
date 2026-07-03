@@ -4,7 +4,22 @@ import { createClient } from '@/lib/supabase/server';
 import { computeSnapshot, type EngineSnapshot, type ObservationLite } from './snapshot';
 import { computeTrends, type TrendsData } from './trends';
 
-const ENGINE_METRICS = ['session_load', 'readiness', 'sleep_duration'];
+const ENGINE_METRICS = [
+  'session_load',
+  'readiness',
+  'sleep_duration',
+  // V2.1 outcomes (ADR-023): running_distance excluded — nothing reads it yet.
+  'bodyweight',
+  'e1rm_squat',
+  'e1rm_bench',
+  'e1rm_deadlift',
+  'e1rm_ohp',
+  'running_pace',
+  'match_rating',
+  'nutrition_adherence',
+  'alcohol',
+  'caffeine',
+];
 
 /**
  * 90-day window: the engine needs ≤28d for baselines/chronic EWMA; 90d makes

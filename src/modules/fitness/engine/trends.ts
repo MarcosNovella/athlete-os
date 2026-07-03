@@ -56,6 +56,28 @@ export type TrendsData = {
   readinessMean: number | null;
   /** Last 4 calendar weeks (Monday start), oldest → newest; current week partial. */
   weeks: WeekSummary[];
+  /** V2.1 outcomes (ADR-023). Full 90d window (already fetched) — outcomes move slowly. */
+  outcomes: OutcomesData;
+};
+
+export type OutcomeSeries = {
+  points: DatedValue[];
+  last: { date: string; value: number } | null;
+  /** last.value - previous point's value; null with <2 points ("primer registro"). */
+  deltaVsPrev: number | null;
+};
+
+export type OutcomesData = {
+  bodyweight: OutcomeSeries;
+  e1rm: Record<'squat' | 'bench' | 'deadlift' | 'ohp', OutcomeSeries>;
+  pace: OutcomeSeries & { mean: number | null };
+  matchRating: OutcomeSeries & { mean: number | null };
+  nutrition7d: {
+    adherenceAvg: number | null;
+    alcoholDays: number;
+    caffeineDays: number;
+    checkinDays: number;
+  };
 };
 
 export function computeTrends(obs: ReadonlyArray<ObservationLite>, today: string): TrendsData {
@@ -98,7 +120,74 @@ export function computeTrends(obs: ReadonlyArray<ObservationLite>, today: string
     sleepMean: baselineMean(sleepAll, today),
     readinessMean: baselineMean(readinessAll, today),
     weeks: weekSummaries(fullDaily, sessionLoads, sleepAll, readinessAll, today),
+    outcomes: computeOutcomes(obs, today),
   };
+}
+
+function aggregateByDate(
+  points: ReadonlyArray<DatedValue>,
+  combine: (values: number[]) => number,
+): DatedValue[] {
+  const byDate = new Map<string, number[]>();
+  for (const p of points) {
+    const bucket = byDate.get(p.date);
+    if (bucket) bucket.push(p.value);
+    else byDate.set(p.date, [p.value]);
+  }
+  return [...byDate.entries()]
+    .map(([date, values]) => ({ date, value: combine(values) }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+const maxOf = (values: number[]): number => Math.max(...values);
+const meanRound2Of = (values: number[]): number =>
+  Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100;
+
+function toOutcomeSeries(points: DatedValue[]): OutcomeSeries {
+  const last = points.at(-1) ?? null;
+  const prev = points.length > 1 ? (points.at(-2) ?? null) : null;
+  const deltaVsPrev =
+    last !== null && prev !== null ? Math.round((last.value - prev.value) * 100) / 100 : null;
+  return {
+    points,
+    last: last === null ? null : { date: last.date, value: last.value },
+    deltaVsPrev,
+  };
+}
+
+function computeOutcomes(obs: ReadonlyArray<ObservationLite>, today: string): OutcomesData {
+  const bodyweight = toOutcomeSeries(metricSeries(obs, 'bodyweight'));
+
+  const e1rmFor = (key: string) => toOutcomeSeries(aggregateByDate(metricSeries(obs, key), maxOf));
+  const e1rm = {
+    squat: e1rmFor('e1rm_squat'),
+    bench: e1rmFor('e1rm_bench'),
+    deadlift: e1rmFor('e1rm_deadlift'),
+    ohp: e1rmFor('e1rm_ohp'),
+  };
+
+  const pacePoints = aggregateByDate(metricSeries(obs, 'running_pace'), meanRound2Of);
+  const pace = { ...toOutcomeSeries(pacePoints), mean: avg(pacePoints.map((p) => p.value)) };
+
+  const ratingPoints = aggregateByDate(metricSeries(obs, 'match_rating'), meanRound2Of);
+  const matchRating = {
+    ...toOutcomeSeries(ratingPoints),
+    mean: avg(ratingPoints.map((p) => p.value)),
+  };
+
+  const from7 = addDaysIso(today, -6);
+  const inLast7 = (date: string) => date >= from7 && date <= today;
+  const adherence7d = metricSeries(obs, 'nutrition_adherence').filter((v) => inLast7(v.date));
+  const alcohol7d = metricSeries(obs, 'alcohol').filter((v) => inLast7(v.date));
+  const caffeine7d = metricSeries(obs, 'caffeine').filter((v) => inLast7(v.date));
+  const nutrition7d = {
+    adherenceAvg: avg(adherence7d.map((v) => v.value)),
+    alcoholDays: alcohol7d.filter((v) => v.value === 1).length,
+    caffeineDays: caffeine7d.filter((v) => v.value === 1).length,
+    checkinDays: alcohol7d.length, // alcohol is always emitted with the check-in
+  };
+
+  return { bodyweight, e1rm, pace, matchRating, nutrition7d };
 }
 
 /** Monday of the week containing `isoDate`. */

@@ -93,3 +93,59 @@ describe('computeTrends', () => {
     }
   });
 });
+
+describe('computeTrends outcomes', () => {
+  const start = '2026-06-11';
+  const days = 21;
+  const today = dateAt(start, days - 1);
+  const obs: ObservationLite[] = [
+    { metric_key: 'bodyweight', value: 82.0, effective_date: dateAt(start, 0) },
+    { metric_key: 'bodyweight', value: 81.5, effective_date: dateAt(start, 10) },
+    { metric_key: 'e1rm_squat', value: 140, effective_date: dateAt(start, 2) },
+    // same-day duplicate: e1rm dedupes via MAX (PR semantics).
+    { metric_key: 'e1rm_squat', value: 135, effective_date: dateAt(start, 5) },
+    { metric_key: 'e1rm_squat', value: 145, effective_date: dateAt(start, 5) },
+    { metric_key: 'running_pace', value: 5.5, effective_date: dateAt(start, 3) },
+    { metric_key: 'running_pace', value: 5.2, effective_date: dateAt(start, 12) },
+    { metric_key: 'match_rating', value: 4, effective_date: dateAt(start, 4) },
+    { metric_key: 'match_rating', value: 2, effective_date: dateAt(start, 18) },
+  ];
+  for (let i = days - 7; i < days; i++) {
+    const date = dateAt(start, i);
+    obs.push({ metric_key: 'nutrition_adherence', value: 4, effective_date: date });
+    obs.push({ metric_key: 'alcohol', value: i === days - 2 ? 1 : 0, effective_date: date });
+    obs.push({ metric_key: 'caffeine', value: 1, effective_date: date });
+  }
+  const t = computeTrends(obs, today);
+
+  it('computes bodyweight last + delta vs the previous point', () => {
+    expect(t.outcomes.bodyweight.points).toHaveLength(2);
+    expect(t.outcomes.bodyweight.last).toEqual({ date: dateAt(start, 10), value: 81.5 });
+    expect(t.outcomes.bodyweight.deltaVsPrev).toBe(-0.5);
+  });
+
+  it('reports "primer registro" (null delta) with a single point', () => {
+    expect(t.outcomes.e1rm.bench.points).toHaveLength(0);
+    expect(t.outcomes.e1rm.bench.last).toBeNull();
+    expect(t.outcomes.e1rm.bench.deltaVsPrev).toBeNull();
+  });
+
+  it('aggregates same-date e1rm duplicates via max (PR semantics)', () => {
+    expect(t.outcomes.e1rm.squat.points).toHaveLength(2);
+    const dupDay = t.outcomes.e1rm.squat.points.find((p) => p.date === dateAt(start, 5));
+    expect(dupDay?.value).toBe(145);
+  });
+
+  it('exposes a mean alongside the pace/matchRating series', () => {
+    expect(t.outcomes.pace.mean).toBe(5.35);
+    expect(t.outcomes.matchRating.mean).toBe(3);
+    expect(t.outcomes.matchRating.last).toEqual({ date: dateAt(start, 18), value: 2 });
+  });
+
+  it('summarizes nutrition/alcohol/caffeine over the last 7 days only', () => {
+    expect(t.outcomes.nutrition7d.checkinDays).toBe(7);
+    expect(t.outcomes.nutrition7d.adherenceAvg).toBe(4);
+    expect(t.outcomes.nutrition7d.alcoholDays).toBe(1);
+    expect(t.outcomes.nutrition7d.caffeineDays).toBe(7);
+  });
+});

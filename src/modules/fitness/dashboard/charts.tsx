@@ -195,6 +195,114 @@ export function AcwrGauge({ value, yesterday }: { value: number; yesterday: numb
   );
 }
 
+/** Split a dated series into runs of consecutive days so gaps stay visible. */
+function splitConsecutive(points: ReadonlyArray<DatedValue>): DatedValue[][] {
+  const segments: DatedValue[][] = [];
+  let current: DatedValue[] = [];
+  let prevDate: string | null = null;
+  for (const p of points) {
+    if (prevDate !== null && diffDays(prevDate, p.date) !== 1 && current.length > 0) {
+      segments.push(current);
+      current = [];
+    }
+    current.push(p);
+    prevDate = p.date;
+  }
+  if (current.length > 0) segments.push(current);
+  return segments;
+}
+
+/**
+ * ACWR over time (roadmap §A.7): line on a FIXED 0→2 scale over the same
+ * shaded zones as the gauge, so drift toward a band is visible before it
+ * flags. Points above 2 clamp to the top edge (display only). The series is
+ * already unlock-gated by the engine, so the line starts mid-chart on young
+ * histories; gaps stay gaps.
+ */
+export function AcwrChart({
+  points,
+  windowStart,
+  today,
+}: {
+  points: ReadonlyArray<DayValue>;
+  windowStart: string;
+  today: string;
+}) {
+  if (points.length === 0) return <p className="text-sm text-faint">Sin datos todavía.</p>;
+
+  const nDays = diffDays(windowStart, today) + 1;
+  const step = (PLOT_RIGHT - PLOT_LEFT) / nDays;
+  const x = (date: string) => PLOT_LEFT + diffDays(windowStart, date) * step + step / 2;
+  const height = 130;
+  const bottom = height - 18;
+  const top = 8;
+  const y = (v: number) => bottom - (Math.min(GAUGE_MAX, v) / GAUGE_MAX) * (bottom - top);
+
+  const segments = splitConsecutive(points);
+  const refs = [0.8, 1.3, 1.5] as const;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${height}`}
+      className="w-full"
+      role="img"
+      aria-label="ACWR últimos 28 días"
+    >
+      {GAUGE_ZONES.map((z) => (
+        <rect
+          key={z.from}
+          x={PLOT_LEFT}
+          y={y(z.to)}
+          width={PLOT_RIGHT - PLOT_LEFT}
+          height={y(z.from) - y(z.to)}
+          className={z.cls}
+        />
+      ))}
+      {refs.map((r) => (
+        <g key={r}>
+          <line
+            x1={PLOT_LEFT}
+            y1={y(r)}
+            x2={PLOT_RIGHT}
+            y2={y(r)}
+            strokeDasharray="3 3"
+            className="stroke-line"
+          />
+          <text
+            x={PLOT_RIGHT}
+            y={y(r) - 2}
+            textAnchor="end"
+            className="fill-faint font-mono text-[8px]"
+          >
+            {r}
+          </text>
+        </g>
+      ))}
+      <line x1={PLOT_LEFT} y1={bottom} x2={PLOT_RIGHT} y2={bottom} className="stroke-line" />
+      {segments.map((seg) => (
+        <polyline
+          key={seg[0]?.date ?? 'seg'}
+          points={seg.map((p) => `${x(p.date).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ')}
+          fill="none"
+          className="stroke-chalk"
+          strokeWidth="2"
+        />
+      ))}
+      <text x={PLOT_LEFT} y={height - 4} className="fill-faint font-mono text-[9px]">
+        {fmtDay(windowStart)}
+      </text>
+      <text
+        x={PLOT_RIGHT}
+        y={height - 4}
+        textAnchor="end"
+        className="fill-faint font-mono text-[9px]"
+      >
+        {fmtDay(today)}
+      </text>
+    </svg>
+  );
+}
+
 /**
  * Small line chart for a daily check-in metric over the last 28 days.
  * Gaps stay visual gaps: the line only connects CONSECUTIVE days.
@@ -227,19 +335,7 @@ export function MetricChart({
   const bottom = height - 18;
   const y = (v: number) => bottom - ((v - yMin) / (yMax - yMin)) * (bottom - 8);
 
-  // Split into runs of consecutive days so gaps are visible.
-  const segments: DatedValue[][] = [];
-  let current: DatedValue[] = [];
-  let prevDate: string | null = null;
-  for (const p of points) {
-    if (prevDate !== null && diffDays(prevDate, p.date) !== 1 && current.length > 0) {
-      segments.push(current);
-      current = [];
-    }
-    current.push(p);
-    prevDate = p.date;
-  }
-  if (current.length > 0) segments.push(current);
+  const segments = splitConsecutive(points);
 
   return (
     <svg viewBox={`0 0 ${W} ${height}`} className="w-full" role="img" aria-label={label}>

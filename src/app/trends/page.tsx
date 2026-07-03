@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getCurrentSubject } from '@/core/subjects/service';
 import { addDaysIso } from '@/lib/dates';
-import { LoadChart, MetricChart } from '@/modules/fitness/dashboard/charts';
+import { AcwrChart, LoadChart, MetricChart } from '@/modules/fitness/dashboard/charts';
+import { InfoTip } from '@/modules/fitness/dashboard/InfoTip';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { WeeklyTable } from '@/modules/fitness/dashboard/WeeklyTable';
 import { getTrends } from '@/modules/fitness/engine/service';
@@ -30,9 +31,21 @@ export default async function TrendsPage() {
 
       <section className="rounded-xl border border-line bg-turf p-4">
         <h2 className="mb-2 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
-          Carga y ACWR
+          Carga
         </h2>
         <LoadChart daily={t.daily} acute={t.acute7} chronic={t.chronic28} />
+      </section>
+
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-2 flex items-center gap-1.5 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          <span>ACWR</span>
+          <InfoTip term="acwr" id="trends" />
+        </h2>
+        {t.acwr.length > 0 ? (
+          <AcwrChart points={t.acwr} windowStart={windowStart} today={t.today} />
+        ) : (
+          <p className="text-sm text-faint">Se desbloquea con 14 días de historia.</p>
+        )}
       </section>
 
       <section className="rounded-xl border border-line bg-turf p-4">

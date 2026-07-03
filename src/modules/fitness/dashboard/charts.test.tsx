@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { AcwrGauge, GAUGE_MAX, gaugeX } from './charts';
+import { AcwrChart, AcwrGauge, GAUGE_MAX, gaugeX } from './charts';
 
 describe('gaugeX', () => {
   it('is monotonic on the 0→2 track and clamps outside it', () => {
@@ -29,5 +29,28 @@ describe('AcwrGauge', () => {
     const marker = container.querySelector('[data-marker="today"]');
     expect(marker?.getAttribute('x1')).toBe(String(gaugeX(GAUGE_MAX)));
     expect(container.textContent).toContain('2.31 »');
+  });
+});
+
+describe('AcwrChart', () => {
+  it('renders zone bands and splits the line across gated gaps', () => {
+    const points = [
+      { date: '2026-06-14', value: 1.0 },
+      { date: '2026-06-15', value: 1.1 },
+      // gap (missing 16th) — line must break
+      { date: '2026-06-17', value: 1.2 },
+    ];
+    const { container } = render(
+      <AcwrChart points={points} windowStart="2026-06-01" today="2026-06-28" />,
+    );
+    expect(container.querySelectorAll('rect').length).toBe(4); // the 4 zones
+    expect(container.querySelectorAll('polyline').length).toBe(2); // 2 segments
+  });
+
+  it('shows the empty state text when the series is empty', () => {
+    const { container } = render(
+      <AcwrChart points={[]} windowStart="2026-06-01" today="2026-06-28" />,
+    );
+    expect(container.textContent).toContain('Sin datos');
   });
 });

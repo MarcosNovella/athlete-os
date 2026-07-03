@@ -10,10 +10,14 @@ export type Database = {
     Tables: {
       daily_checkins: {
         Row: {
+          alcohol: boolean;
           backfilled: boolean;
+          bodyweight_kg: number | null;
+          caffeine: boolean;
           created_at: string;
           date: string;
           id: string;
+          nutrition_adherence: number | null;
           readiness: number;
           sleep_hours: number;
           sleep_quality: number;
@@ -23,10 +27,14 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          alcohol?: boolean;
           backfilled?: boolean;
+          bodyweight_kg?: number | null;
+          caffeine?: boolean;
           created_at?: string;
           date: string;
           id?: string;
+          nutrition_adherence?: number | null;
           readiness: number;
           sleep_hours: number;
           sleep_quality: number;
@@ -36,10 +44,14 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          alcohol?: boolean;
           backfilled?: boolean;
+          bodyweight_kg?: number | null;
+          caffeine?: boolean;
           created_at?: string;
           date?: string;
           id?: string;
+          nutrition_adherence?: number | null;
           readiness?: number;
           sleep_hours?: number;
           sleep_quality?: number;
@@ -230,42 +242,60 @@ export type Database = {
           backfilled: boolean;
           created_at: string;
           date: string;
+          distance_km: number | null;
           duration_min: number;
           id: string;
+          is_match: boolean;
+          lift: string | null;
           load: number | null;
+          match_rating: number | null;
           modality: string;
           notes: string | null;
           srpe: number;
           started_at: string;
           subject_id: string;
+          top_set_reps: number | null;
+          top_set_weight_kg: number | null;
           updated_at: string;
         };
         Insert: {
           backfilled?: boolean;
           created_at?: string;
           date: string;
+          distance_km?: number | null;
           duration_min: number;
           id?: string;
+          is_match?: boolean;
+          lift?: string | null;
           load?: number | null;
+          match_rating?: number | null;
           modality: string;
           notes?: string | null;
           srpe: number;
           started_at: string;
           subject_id: string;
+          top_set_reps?: number | null;
+          top_set_weight_kg?: number | null;
           updated_at?: string;
         };
         Update: {
           backfilled?: boolean;
           created_at?: string;
           date?: string;
+          distance_km?: number | null;
           duration_min?: number;
           id?: string;
+          is_match?: boolean;
+          lift?: string | null;
           load?: number | null;
+          match_rating?: number | null;
           modality?: string;
           notes?: string | null;
           srpe?: number;
           started_at?: string;
           subject_id?: string;
+          top_set_reps?: number | null;
+          top_set_weight_kg?: number | null;
           updated_at?: string;
         };
         Relationships: [

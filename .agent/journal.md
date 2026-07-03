@@ -140,3 +140,48 @@ Errors → guardrails born:
   Python that prints non-ASCII with PYTHONIOENCODING=utf-8 on Windows (candidate C-011).
 - G-002 struck twice more (zombie node holding :3000 across with_server runs) — the
   existing guardrail's kill-first ritual resolved both.
+
+## Session 9 — 2026-07-03 — V2.1 Outcomes: planned only (Marcos: "frenate")
+
+Arc: plan-mode session, zero code. Diagnosed the roadmap §B gap (app captures load +
+state but no OUTCOMES, so "what makes me better/worse" is unanswerable and V2.3's
+pattern engine has nothing to accumulate). Wrote the 7-milestone V2.1 plan (migration →
+schemas/emission/backfill-stagger fix → forms+prefill → trends.outcomes 90d →
+Rendimiento UI → briefing → seed+E2E+ADR+merge), folding in Marcos's 4 UX decisions
+(fixed lift selector, bodyweight in check-in, rugby partido-toggle, nutrition ordinal
+included now) and a pre-existing bug found while reading actions.ts (backfilled
+same-day sessions collide on observations_dedupe — scoped as an M2 fix rather than a
+standalone hotfix, since M2 already touches the emission/backfill code). Marcos stopped
+here explicitly to review the plan before touching code.
+
+## Session 10 — 2026-07-03 — V2.1 Outcomes: built, merged, LIVE
+
+Arc: executed the Session 9 plan via /execute, all 7 milestones on feat/outcomes, each
+verify-GREEN (85→123 tests). M1 migration (nullable columns + cross-field CHECKs + 11
+metrics + RPC replace) applied via MCP. M2 Zod superRefine + pure emission (e1RM Epley
+round 0.5kg/reps=1 passthrough, pace round2, staggeredBackfillInstant fixing the
+dedupe-collision bug). M3 collapsed check-in fields + modality-conditional session
+forms, verified in-browser against the demo subject (save → reload → prefilled →
+re-save, values persist). M4 trends.outcomes over the already-fetched 90d window
+(same-date dedup: e1rm max/PR semantics, pace+rating mean). M5 Rendimiento section
+(4 cards, e1RM gated to ≥2 points, MetricChart connectGaps + flat-range guard). M6
+briefing "Resultados (outcomes)" section. M7 extended the seed narrative to 324 obs
+(was 209), hit the plan's per-lift counts EXACTLY (squat 3/bench 3/deadlift 1/ohp 0) on
+the first real run; ADR-023 filed. Merged ff → main (Marcos: "hace el merge... si tenes
+que usar harvest, query, lint, etc. hacelo") → prod deploy READY; smoke passed (session
+persists, Tendencias/Coach render gracefully for a real fresh user with 0 outcomes,
+manifest+SW active, RLS data loads).
+
+Errors → guardrails born:
+- Found (not self-inflicted, but caught and fixed in-session): the /coach skill's
+  raw-data SQL hardcoded the pre-V2.1 `metric_key in (...)` allowlist — every future
+  weekly synthesis would have silently omitted outcomes with no error. Fixed to mirror
+  ENGINE_METRICS; noted in skills.md as a sync gotcha (candidate: "hardcoded metric-key
+  allowlists rot silently — reference or generate from the single source of truth
+  instead of copying the literal list").
+- Found (pre-existing, NOT caused by V2.1, left unfixed — out of scope for this plan):
+  prod console shows a React hydration error (#418) on "/" traced to the Hero/InfoTip
+  markup in TodayStatePanel.tsx (a `<p>` containing the InfoTip popover `<div>`/`<p>`) —
+  last touched in the ADR-022 (V2.0) session, not this one. Flagged for a separate fix.
+
+> HARVESTED through Session 10 (2026-07-03) on 2026-07-03 → 0 ADRs (ADR-023 already filed inline), 0 new playbooks (skills.md already updated inline in M7), 1 candidate (C-012, new, seen_in 1 — not promotable), 1 memory (feedback: run harvest/query/lint proactively at milestones)

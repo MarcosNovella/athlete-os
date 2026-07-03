@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-type Tab = 'today' | 'trends' | 'coach';
+type Tab = 'today' | 'trends' | 'coach' | 'sources';
 
 export function TabNav({ active }: { active: Tab }) {
   const tab = (href: string, key: Tab, label: string) => (
@@ -20,6 +20,7 @@ export function TabNav({ active }: { active: Tab }) {
       {tab('/', 'today', 'Hoy')}
       {tab('/trends', 'trends', 'Tendencias')}
       {tab('/coach', 'coach', 'Coach')}
+      {tab('/fuentes', 'sources', 'Fuentes')}
     </nav>
   );
 }

@@ -64,4 +64,32 @@ describe('computeTrends', () => {
     const sorted = [...t.weeks.map((w) => w.weekStart)].sort();
     expect(t.weeks.map((w) => w.weekStart)).toEqual(sorted);
   });
+
+  it('starts the ACWR series exactly at the provisional unlock day', () => {
+    // 21 days of history → ratios exist only from day 14 (i=13) onward.
+    expect(t.acwr.length).toBe(8);
+    expect(t.acwr[0]?.date).toBe(dateAt(start, 13));
+    for (const p of t.acwr) expect(p.value).toBeGreaterThan(0);
+  });
+
+  it('computes week-over-week load deltas (null only where no prior week exists)', () => {
+    // Weeks: 600 → 1200 → 900 → 600(partial): null, +100%, -25%, -33%.
+    expect(t.weeks.map((w) => w.loadDeltaPct)).toEqual([null, 100, -25, -33]);
+  });
+
+  it('marks only the unfinished current week as partial', () => {
+    expect(t.weeks.map((w) => w.isPartial)).toEqual([false, false, false, true]);
+  });
+
+  it('carries monotony band + display consistent with the value', () => {
+    for (const w of t.weeks) {
+      if (w.monotony === null) {
+        expect(w.monotonyBand).toBeNull();
+        expect(w.monotonyDisplay).toBeNull();
+      } else {
+        expect(w.monotonyBand).not.toBeNull();
+        expect(w.monotonyDisplay).toBe(w.monotony > 5 ? '>5' : String(w.monotony));
+      }
+    }
+  });
 });

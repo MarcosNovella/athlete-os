@@ -1,8 +1,19 @@
 // Relative import: this pure module is also consumed by scripts/ outside Next (ADR-016).
 import { addDaysIso } from '../../../lib/dates';
 import { BASELINE_MIN_COUNT, type DatedValue, trailingBaseline } from './baselines';
-import { type DayValue, dailyLoadSeries, ewmaSeries, monotony, strain } from './load';
+import {
+  acwr,
+  type DayValue,
+  dailyLoadSeries,
+  ewmaSeries,
+  type MonotonyBand,
+  monotony,
+  monotonyBand,
+  monotonyDisplay,
+  strain,
+} from './load';
 import type { ObservationLite } from './snapshot';
+import { UNLOCK_THRESHOLDS } from './unlock';
 
 /**
  * Trend series for the dashboards (ADR-012/015). Pure. Same gap semantics as
@@ -12,11 +23,17 @@ import type { ObservationLite } from './snapshot';
 export type WeekSummary = {
   weekStart: string; // Monday
   totalLoad: number;
+  /** vs the previous CALENDAR week; null on the oldest known week or prev 0. */
+  loadDeltaPct: number | null;
   sessionCount: number;
   avgSleep: number | null;
   avgReadiness: number | null;
   monotony: number | null;
+  monotonyBand: MonotonyBand | null;
+  monotonyDisplay: string | null;
   strain: number | null;
+  /** True while the week hasn't finished — deltas/tints should be read softly. */
+  isPartial: boolean;
 };
 
 export type TrendsData = {
@@ -25,6 +42,12 @@ export type TrendsData = {
   daily: DayValue[];
   acute7: DayValue[];
   chronic28: DayValue[];
+  /**
+   * Daily ACWR, last 28 days. A day is included only from the acwr_provisional
+   * unlock day onward AND while chronic is a meaningful denominator — the same
+   * gating semantics as the snapshot. Gaps preserved; values round2, uncapped.
+   */
+  acwr: DayValue[];
   /** Last 28 days, gaps preserved. */
   sleep: DatedValue[];
   readiness: DatedValue[];
@@ -52,16 +75,29 @@ export function computeTrends(obs: ReadonlyArray<ObservationLite>, today: string
   const sleepAll = metricSeries(obs, 'sleep_duration');
   const readinessAll = metricSeries(obs, 'readiness');
 
+  // Daily ACWR, gated exactly like the snapshot: no ratio before the
+  // provisional unlock day, no ratio over a ~0 chronic denominator.
+  const acwrFull: DayValue[] = [];
+  fullDaily.forEach((day, i) => {
+    if (i + 1 < UNLOCK_THRESHOLDS.acwr_provisional) return;
+    const acute = acuteFull[i];
+    const chronic = chronicFull[i];
+    if (acute === undefined || chronic === undefined) return;
+    const ratio = acwr(acute.value, chronic.value);
+    if (ratio !== null) acwrFull.push({ date: day.date, value: Math.round(ratio * 100) / 100 });
+  });
+
   return {
     today,
     daily: fullDaily.filter((d) => d.date >= from28),
     acute7: acuteFull.filter((d) => d.date >= from28),
     chronic28: chronicFull.filter((d) => d.date >= from28),
+    acwr: acwrFull.filter((d) => d.date >= from28),
     sleep: sleepAll.filter((v) => v.date >= from28),
     readiness: readinessAll.filter((v) => v.date >= from28),
     sleepMean: baselineMean(sleepAll, today),
     readinessMean: baselineMean(readinessAll, today),
-    weeks: weekSummaries(fullDaily, sessionLoads, sleepAll, readinessAll),
+    weeks: weekSummaries(fullDaily, sessionLoads, sleepAll, readinessAll, today),
   };
 }
 
@@ -78,6 +114,7 @@ function weekSummaries(
   sessionLoads: ReadonlyArray<{ effective_date: string; value: number }>,
   sleep: ReadonlyArray<DatedValue>,
   readiness: ReadonlyArray<DatedValue>,
+  today: string,
 ): WeekSummary[] {
   const byWeek = new Map<string, DayValue[]>();
   for (const day of fullDaily) {
@@ -87,22 +124,37 @@ function weekSummaries(
     else byWeek.set(ws, [day]);
   }
 
-  const starts = [...byWeek.keys()].sort().slice(-4);
-  return starts.map((weekStart) => {
+  // Summarize ALL known weeks so the oldest returned week still gets its delta,
+  // then keep the last 4.
+  const starts = [...byWeek.keys()].sort();
+  const all = starts.map((weekStart) => {
     const days = byWeek.get(weekStart) ?? [];
     const weekEnd = addDaysIso(weekStart, 6);
     const inWeek = (date: string) => date >= weekStart && date <= weekEnd;
     const loads = days.map((d) => d.value);
+    const monotonyVal = roundOrNull(monotony(loads), 2);
     return {
       weekStart,
       totalLoad: loads.reduce((a, b) => a + b, 0),
+      loadDeltaPct: null as number | null,
       sessionCount: sessionLoads.filter((s) => inWeek(s.effective_date)).length,
       avgSleep: avg(sleep.filter((v) => inWeek(v.date)).map((v) => v.value)),
       avgReadiness: avg(readiness.filter((v) => inWeek(v.date)).map((v) => v.value)),
-      monotony: roundOrNull(monotony(loads), 2),
+      monotony: monotonyVal,
+      monotonyBand: monotonyVal === null ? null : monotonyBand(monotonyVal),
+      monotonyDisplay: monotonyVal === null ? null : monotonyDisplay(monotonyVal),
       strain: roundOrNull(strain(loads), 0),
+      isPartial: weekEnd > today,
     };
   });
+  for (let i = 1; i < all.length; i++) {
+    const prev = all[i - 1];
+    const cur = all[i];
+    if (prev !== undefined && cur !== undefined && prev.totalLoad > 0) {
+      cur.loadDeltaPct = Math.round(((cur.totalLoad - prev.totalLoad) / prev.totalLoad) * 100);
+    }
+  }
+  return all.slice(-4);
 }
 
 function baselineMean(values: ReadonlyArray<DatedValue>, today: string): number | null {

@@ -70,6 +70,106 @@ export type Database = {
           },
         ];
       };
+      device_connections: {
+        Row: {
+          access_token: string;
+          created_at: string;
+          external_user_id: string | null;
+          id: string;
+          last_sync_status: string | null;
+          last_synced_at: string | null;
+          provider: string;
+          refresh_token: string;
+          scope: string;
+          status: string;
+          subject_id: string;
+          token_expires_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          access_token: string;
+          created_at?: string;
+          external_user_id?: string | null;
+          id?: string;
+          last_sync_status?: string | null;
+          last_synced_at?: string | null;
+          provider: string;
+          refresh_token: string;
+          scope: string;
+          status?: string;
+          subject_id: string;
+          token_expires_at: string;
+          updated_at?: string;
+        };
+        Update: {
+          access_token?: string;
+          created_at?: string;
+          external_user_id?: string | null;
+          id?: string;
+          last_sync_status?: string | null;
+          last_synced_at?: string | null;
+          provider?: string;
+          refresh_token?: string;
+          scope?: string;
+          status?: string;
+          subject_id?: string;
+          token_expires_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'device_connections_subject_id_fkey';
+            columns: ['subject_id'];
+            isOneToOne: false;
+            referencedRelation: 'subjects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      import_batches: {
+        Row: {
+          created_at: string;
+          date_max: string | null;
+          date_min: string | null;
+          file_name: string | null;
+          id: string;
+          kind: string;
+          observation_count: number;
+          provider: string;
+          subject_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          date_max?: string | null;
+          date_min?: string | null;
+          file_name?: string | null;
+          id?: string;
+          kind: string;
+          observation_count?: number;
+          provider: string;
+          subject_id: string;
+        };
+        Update: {
+          created_at?: string;
+          date_max?: string | null;
+          date_min?: string | null;
+          file_name?: string | null;
+          id?: string;
+          kind?: string;
+          observation_count?: number;
+          provider?: string;
+          subject_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'import_batches_subject_id_fkey';
+            columns: ['subject_id'];
+            isOneToOne: false;
+            referencedRelation: 'subjects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       insights: {
         Row: {
           confidence: string | null;
@@ -313,6 +413,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      import_observations: {
+        Args: { batch: Json; observations: Json };
+        Returns: string;
+      };
       save_daily_checkin: {
         Args: { checkin: Json; observations: Json };
         Returns: string;

@@ -19,6 +19,12 @@ const ENGINE_METRICS = [
   'nutrition_adherence',
   'alcohol',
   'caffeine',
+  // V2.2 passive inputs (ADR-024): device-sourced recovery metrics.
+  'recovery_score',
+  'hrv_rmssd',
+  'hrv_sdnn',
+  'resting_hr',
+  'sleep_device',
 ];
 
 /**

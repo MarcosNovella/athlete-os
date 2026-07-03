@@ -47,7 +47,8 @@ write them into the `insights` table so they render in the app's Coach tab.
          and metric_key in (
            'session_load','readiness','sleep_duration',
            'bodyweight','e1rm_squat','e1rm_bench','e1rm_deadlift','e1rm_ohp',
-           'running_pace','match_rating','nutrition_adherence','alcohol','caffeine'
+           'running_pace','match_rating','nutrition_adherence','alcohol','caffeine',
+           'recovery_score','hrv_rmssd','hrv_sdnn','resting_hr','sleep_device'
          )
          and effective_date >= (current_date - 90)), '[]'::json),
      'sessions', coalesce((

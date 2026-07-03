@@ -14,6 +14,8 @@ import {
   signalSummary,
 } from '../src/modules/fitness/engine/snapshot';
 import { computeTrends } from '../src/modules/fitness/engine/trends';
+import { toImportRows } from '../src/modules/fitness/integrations/import';
+import type { DeviceObservation } from '../src/modules/fitness/integrations/types';
 
 /**
  * Synthetic 28-day seed for a disposable DEMO subject (MVP validation).
@@ -137,6 +139,110 @@ type SessionOutcomeExtra = Partial<
     'lift' | 'top_set_weight_kg' | 'top_set_reps' | 'distance_km' | 'is_match' | 'match_rating'
   >
 >;
+
+// --- V2.2 passive-input device narrative (ADR-024) ---------------------------
+// Layered onto the SAME 28-day story via the REAL import_observations RPC, two
+// batches (whoop/api, apple_health/file) — exercises both provenance shapes,
+// no key collision (D3: hrv split, resting_hr shared, sleep_device own key).
+
+/** i (0-indexed day) → Whoop recovery score. d1-21: 65-85 oscillation; d22-28: 55→38. */
+function recoveryScoreFor(i: number): number {
+  if (i < 21) return 65 + (i % 5) * 5; // 65/70/75/80/85 repeating
+  const step = i - 21; // 0..6
+  return Math.round(55 - ((55 - 38) / 6) * step);
+}
+
+/** i → Whoop HRV RMSSD (ms). d1-21: ~75±8; d22-28: ramps down ~15%. */
+function hrvRmssdFor(i: number): number {
+  const base = 75;
+  if (i < 21) {
+    const wobble = i % 3 === 0 ? 8 : i % 3 === 1 ? -8 : 0;
+    return round1(base + wobble);
+  }
+  const step = i - 21; // 0..6
+  return round1(base * (1 - 0.15 * (step / 6)));
+}
+
+/** i → Apple HRV SDNN (ms). Distinct measurand from RMSSD (~1.7x, D3 HRV split). */
+function hrvSdnnFor(i: number): number {
+  return round1(hrvRmssdFor(i) * 1.7);
+}
+
+/** i → resting heart rate (bpm), shared key. d1-21: ~52; d22-28: +5 bpm. */
+function restingHrFor(i: number): number {
+  if (i < 21) return 52;
+  const step = i - 21; // 0..6
+  return Math.round(52 + 5 * (step / 6));
+}
+
+/** Device sleep tracks manual sleep_hours minus a small underreport offset. */
+function sleepDeviceFor(manualSleepHours: number): number {
+  return quarter(manualSleepHours - 0.4);
+}
+
+function buildDeviceObservations(days: PlannedDay[]): {
+  whoop: DeviceObservation[];
+  apple: DeviceObservation[];
+} {
+  const whoop: DeviceObservation[] = [];
+  const apple: DeviceObservation[] = [];
+  days.forEach((day, i) => {
+    whoop.push(
+      { metric_key: 'recovery_score', value: recoveryScoreFor(i), date: day.date },
+      { metric_key: 'hrv_rmssd', value: hrvRmssdFor(i), date: day.date },
+      { metric_key: 'resting_hr', value: restingHrFor(i), date: day.date },
+    );
+    apple.push(
+      { metric_key: 'hrv_sdnn', value: hrvSdnnFor(i), date: day.date },
+      {
+        metric_key: 'sleep_device',
+        value: sleepDeviceFor(day.checkin.sleep_hours),
+        date: day.date,
+      },
+    );
+  });
+  return { whoop, apple };
+}
+
+function previewDevices(days: PlannedDay[]): void {
+  const { whoop, apple } = buildDeviceObservations(days);
+  const { rows: whoopRows, droppedCount: whoopDropped } = toImportRows(whoop);
+  const { rows: appleRows, droppedCount: appleDropped } = toImportRows(apple);
+  console.log('— Device import preview —');
+  console.log(
+    `  whoop/api: ${whoopRows.length} rows planned (${whoopDropped} dropped out-of-range)`,
+  );
+  console.log(
+    `  apple_health/file: ${appleRows.length} rows planned (${appleDropped} dropped out-of-range)`,
+  );
+}
+
+async function writeDeviceBatches(
+  supabase: SupabaseClient<Database>,
+  days: PlannedDay[],
+  subjectId: string,
+): Promise<void> {
+  const { whoop, apple } = buildDeviceObservations(days);
+  const { rows: whoopRows } = toImportRows(whoop);
+  const { rows: appleRows } = toImportRows(apple);
+
+  const whoopRes = await supabase.rpc('import_observations', {
+    batch: { subject_id: subjectId, provider: 'whoop', kind: 'api' },
+    observations: whoopRows,
+  });
+  if (whoopRes.error) throw new Error(`import_observations (whoop): ${whoopRes.error.message}`);
+
+  const appleRes = await supabase.rpc('import_observations', {
+    batch: { subject_id: subjectId, provider: 'apple_health', kind: 'file' },
+    observations: appleRows,
+  });
+  if (appleRes.error)
+    throw new Error(`import_observations (apple_health): ${appleRes.error.message}`);
+
+  console.log(
+    `Device batches written: whoop/api ${whoopRows.length} obs, apple_health/file ${appleRows.length} obs.`,
+  );
+}
 
 // --- narrative generation ----------------------------------------------------
 
@@ -494,6 +600,7 @@ async function main(): Promise<void> {
     console.log(`Generated 28 days ending ${today} (dry run — no DB writes).`);
     previewSnapshot(days, today);
     previewOutcomes(days, today);
+    previewDevices(days);
     return;
   }
 
@@ -508,7 +615,9 @@ async function main(): Promise<void> {
   const days = generateDays(subjectId, today);
   previewSnapshot(days, today);
   previewOutcomes(days, today);
+  previewDevices(days);
   await writeDays(supabase, days, subjectId);
+  await writeDeviceBatches(supabase, days, subjectId);
 
   console.log('Done. Log in as the demo user to see unlocks + flags in-app.');
 }

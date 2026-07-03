@@ -21,9 +21,9 @@ Log:
 
 - 2026-07-02 Session 8: BUILT V2.0 interpretation layer (roadmap §A complete, all 9 items; ADR-022) on feat/interpretation-layer — 9 milestone commits, verify GREEN at each (85 tests, was 58). Engine: monotony band+display cap '>5', z tiers, strain rolling-4-week rank, prevWeek delta, acwr.yesterday ghost, signalSummary, trends acwr series + week deltas/isPartial. UI: AcwrGauge + ribbon (server SVG), 5-tier ZBadges, tinted WeeklyTable, glossary popover InfoTips (zero JS), 'N señales activas' cue; briefing tells the same story. Pre-work on main: pagination fix committed + .gitattributes eol=lf (G-009). Validation per §C: seed dry-run all-green + Playwright E2E 27/27 on prod build vs demo subject (mobile 390px incl. popover). Guardrails born: G-009 (line endings), G-010 (PYTHONIOENCODING). Branch pushed → Vercel preview; MERGE PENDING Marcos's real-iPhone check (plan gate).
 
-Last done: V2.0 E2E 27/27; branch feat/interpretation-layer pushed, awaiting iPhone eyeball before merge to main.
+Last done: V2.0 MERGED to main (ff, Marcos approved "push de todo") + pushed → prod deploy READY (sha 9602663) — smoke 4/4 (login, manifest, sw.js, offline). V2.0 LIVE at https://athlete-os-pink.vercel.app.
 
-Next: (a) Marcos checks the Vercel preview on his iPhone (popover tap UX, gauge legibility, table overflow) → merge feat/interpretation-layer to main (auto prod deploy); (b) first real /coach run once ~1wk of real data; (c) synthesis reminder automation. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
+Next: (a) first real /coach run once ~1wk of real data (briefing now interpreted); (b) synthesis reminder automation; (c) V2.1 OUTCOMES per roadmap §B when Marcos says go. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
 
 Open questions: -
 

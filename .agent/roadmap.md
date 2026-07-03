@@ -1,5 +1,7 @@
 # Roadmap notes (V1.x interpretation layer + V2 direction)
-# Status: DISCUSSED with Marcos 2026-07-02 (session 6), not yet approved as ADRs.
+# Status: §A SHIPPED as ADR-022 (2026-07-02, session 8). §B's V2.1 OUTCOMES slice SHIPPED
+# as ADR-023 (2026-07-03, session 10). V2.2 (passive/wearables) and V2.3 (pattern
+# candidates) below are still DISCUSSED, not yet approved as ADRs. §C methodology active.
 # Constraint that orders everything: DoD gate = 4-week capture habit. Nothing may ADD
 # capture friction until the habit is proven. Interpretation first, passive data second,
 # manual capture last.
@@ -44,10 +46,11 @@ that make me better/worse" is currently unanswerable. More inputs alone won't fi
 
 Proposed order (signal-per-friction):
 - V2.0 Interpretation layer (section A). No new capture.
-- V2.1 OUTCOMES, minimal manual: bodyweight (1 number, ~weekly), per-modality performance
-  marker on the session form (gym: top-set weight×reps → e1RM trend; running: distance →
-  pace trend since duration exists; rugby: post-match self-rating 1–5). Observation spine
-  (ADR-007) makes each a new metric_key, no schema surgery.
+- V2.1 OUTCOMES, minimal manual — SHIPPED as ADR-023 (2026-07-03): bodyweight (1 number,
+  ~weekly), per-modality performance marker on the session form (gym: top-set weight×reps
+  → e1RM trend; running: distance → pace trend since duration exists; rugby: post-match
+  self-rating 1–5). Observation spine (ADR-007) makes each a new metric_key, no schema
+  surgery. Also included nutrition ordinal (below) a version early, per Marcos's decision.
 - V2.2 PASSIVE inputs — wearables ANSWERED (Marcos 2026-07-02): Marcos has an Apple Watch
   Series 10 TODAY; BOTH users will have Whoop in the near future. Implications:
   * Whoop is the primary integration target: it has an official developer API (OAuth2,
@@ -62,8 +65,8 @@ Proposed order (signal-per-friction):
   n + confounder caveats, feeding /coach which labels them as HYPOTHESES (ADR-003 contract:
   code computes, LLM interprets). Needs ~8+ weeks of real data — lands naturally after DoD.
 - Nutrition: do NOT build macro logging (highest-friction, highest-abandonment domain).
-  Start ordinal in the check-in if desired: 1-tap "¿comiste acorde?" 1–5 + alcohol/caffeine
-  booleans. Full nutrition only if a hypothesis demands it.
+  Ordinal in the check-in — SHIPPED as part of ADR-023 (2026-07-03): 1-tap "¿comiste
+  acorde?" 1–5 + alcohol/caffeine booleans. Full nutrition only if a hypothesis demands it.
 
 ## C. Development methodology (Marcos 2026-07-02): seed-first validation
 Time-gated unlocks (28d ACWR, 8+ wk pattern candidates) must NEVER block development or

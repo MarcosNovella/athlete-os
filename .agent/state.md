@@ -19,9 +19,11 @@ Log:
 
 - 2026-07-02 Session 7 (cont. 2): point 5 of the knowledge loop — /scaffold now has an "Inherit knowledge" step (imports stack-applicable candidates into the new repo's guardrails.md `## Inherited` section + page pointers in skills.md; inheritance ≠ seen_in evidence). /lint-knowledge + /harvest updated to recognize the inherited marker. The 2026-06-26 6-point design is fully closed.
 
-Last done: knowledge loop complete (all verbs + scaffold inheritance); journal harvested through Session 6.
+- 2026-07-02 Session 8: BUILT V2.0 interpretation layer (roadmap §A complete, all 9 items; ADR-022) on feat/interpretation-layer — 9 milestone commits, verify GREEN at each (85 tests, was 58). Engine: monotony band+display cap '>5', z tiers, strain rolling-4-week rank, prevWeek delta, acwr.yesterday ghost, signalSummary, trends acwr series + week deltas/isPartial. UI: AcwrGauge + ribbon (server SVG), 5-tier ZBadges, tinted WeeklyTable, glossary popover InfoTips (zero JS), 'N señales activas' cue; briefing tells the same story. Pre-work on main: pagination fix committed + .gitattributes eol=lf (G-009). Validation per §C: seed dry-run all-green + Playwright E2E 27/27 on prod build vs demo subject (mobile 390px incl. popover). Guardrails born: G-009 (line endings), G-010 (PYTHONIOENCODING). Branch pushed → Vercel preview; MERGE PENDING Marcos's real-iPhone check (plan gate).
 
-Next: (a) BUILD V2.0 interpretation layer per roadmap.md §A (incl. info glossary), validated against the demo subject per §C; (b) first real /coach run once ~1wk of real data; (c) synthesis reminder automation. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
+Last done: V2.0 E2E 27/27; branch feat/interpretation-layer pushed, awaiting iPhone eyeball before merge to main.
+
+Next: (a) Marcos checks the Vercel preview on his iPhone (popover tap UX, gauge legibility, table overflow) → merge feat/interpretation-layer to main (auto prod deploy); (b) first real /coach run once ~1wk of real data; (c) synthesis reminder automation. DoD gate unchanged: 4-week capture habit (REAL users only — demo data excluded).
 
 Open questions: -
 

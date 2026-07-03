@@ -15,7 +15,10 @@ export type GlossaryKey =
   | 'baseline'
   | 'readiness'
   | 'e1rm'
-  | 'ritmo';
+  | 'ritmo'
+  | 'vfc'
+  | 'fc_reposo'
+  | 'recovery';
 
 export const GLOSSARY: Record<GlossaryKey, { term: string; definition: string }> = {
   acwr: {
@@ -72,5 +75,20 @@ export const GLOSSARY: Record<GlossaryKey, { term: string; definition: string }>
     term: 'Ritmo',
     definition:
       'Minutos por kilómetro en una sesión de running. Más bajo es más rápido — se compara contra tu propia media, no contra una tabla.',
+  },
+  vfc: {
+    term: 'VFC',
+    definition:
+      'Variabilidad de frecuencia cardíaca, medida por tu dispositivo mientras dormís. Whoop usa RMSSD y Apple usa SDNN — son cálculos distintos (no comparables entre sí), por eso se muestran como series separadas.',
+  },
+  fc_reposo: {
+    term: 'FC en reposo',
+    definition:
+      'Frecuencia cardíaca en reposo, medida por tu dispositivo. Una suba sostenida de unos pocos latidos suele acompañar la fatiga acumulada.',
+  },
+  recovery: {
+    term: 'Recovery',
+    definition:
+      'Puntaje de recuperación diario de Whoop (0-100), combina VFC, FC en reposo y sueño de la noche anterior. Es de Whoop únicamente — Apple Health no calcula un puntaje equivalente.',
   },
 };

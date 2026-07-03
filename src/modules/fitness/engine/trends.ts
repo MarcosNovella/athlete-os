@@ -58,6 +58,21 @@ export type TrendsData = {
   weeks: WeekSummary[];
   /** V2.1 outcomes (ADR-023). Full 90d window (already fetched) — outcomes move slowly. */
   outcomes: OutcomesData;
+  /** V2.2 passive inputs (ADR-024). Last 28 days, gaps preserved (devices may be absent). */
+  recovery: RecoveryData;
+};
+
+export type RecoverySeries = {
+  points: DatedValue[];
+  mean: number | null;
+};
+
+export type RecoveryData = {
+  recoveryScore: RecoverySeries;
+  hrvRmssd: RecoverySeries;
+  hrvSdnn: RecoverySeries;
+  restingHr: RecoverySeries;
+  sleepDevice: RecoverySeries;
 };
 
 export type OutcomeSeries = {
@@ -121,6 +136,25 @@ export function computeTrends(obs: ReadonlyArray<ObservationLite>, today: string
     readinessMean: baselineMean(readinessAll, today),
     weeks: weekSummaries(fullDaily, sessionLoads, sleepAll, readinessAll, today),
     outcomes: computeOutcomes(obs, today),
+    recovery: computeRecovery(obs, today, from28),
+  };
+}
+
+function computeRecovery(
+  obs: ReadonlyArray<ObservationLite>,
+  today: string,
+  from28: string,
+): RecoveryData {
+  const series = (key: string): RecoverySeries => {
+    const all = metricSeries(obs, key);
+    return { points: all.filter((v) => v.date >= from28), mean: baselineMean(all, today) };
+  };
+  return {
+    recoveryScore: series('recovery_score'),
+    hrvRmssd: series('hrv_rmssd'),
+    hrvSdnn: series('hrv_sdnn'),
+    restingHr: series('resting_hr'),
+    sleepDevice: series('sleep_device'),
   };
 }
 

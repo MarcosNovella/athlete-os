@@ -132,6 +132,8 @@ export function buildBriefing({
 
   lines.push('', '## Resultados (outcomes)', ...outcomesLines(t));
 
+  lines.push('', '## Recuperación (dato de dispositivo)', ...recoveryLines(t));
+
   lines.push(
     '',
     '## Completitud de datos',
@@ -211,6 +213,34 @@ function outcomesLines(t: TrendsData): string[] {
   }
 
   if (lines.length === 0) lines.push('- Sin registros de outcomes todavía.');
+  return lines;
+}
+
+/** V2.2 passive inputs (ADR-024): objective device series — omitted entirely with no source connected. */
+function recoveryLines(t: TrendsData): string[] {
+  const r = t.recovery;
+  const lines: string[] = [];
+
+  const series = (
+    label: string,
+    s: { points: { date: string; value: number }[]; mean: number | null },
+    unit: string,
+  ) => {
+    const last = s.points.at(-1);
+    if (!last) return;
+    const meanPhrase = s.mean !== null ? ` · media 28d: ${s.mean}${unit}` : '';
+    lines.push(
+      `- ${label}: ${last.value}${unit} (${last.date})${meanPhrase} (dato de dispositivo)`,
+    );
+  };
+
+  series('Recovery (Whoop)', r.recoveryScore, '%');
+  series('VFC RMSSD (Whoop)', r.hrvRmssd, ' ms');
+  series('VFC SDNN (Apple)', r.hrvSdnn, ' ms');
+  series('FC en reposo', r.restingHr, ' bpm');
+  series('Sueño (dispositivo)', r.sleepDevice, ' h');
+
+  if (lines.length === 0) lines.push('- Sin datos de dispositivo todavía.');
   return lines;
 }
 

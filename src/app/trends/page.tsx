@@ -30,11 +30,17 @@ export default async function TrendsPage() {
   const sleepMax = Math.ceil(Math.max(9, ...sleepValues)) + 1;
 
   const windowStart90 = addDaysIso(t.today, -89);
-  const { outcomes } = t;
+  const { outcomes, recovery } = t;
   const bodyweightValues = outcomes.bodyweight.points.map((p) => p.value);
   const lifts = (['squat', 'bench', 'deadlift', 'ohp'] as const).filter(
     (l) => outcomes.e1rm[l].points.length >= 2,
   );
+  const recoveryHasAnyData =
+    recovery.recoveryScore.points.length > 0 ||
+    recovery.hrvRmssd.points.length > 0 ||
+    recovery.hrvSdnn.points.length > 0 ||
+    recovery.restingHr.points.length > 0 ||
+    recovery.sleepDevice.points.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
@@ -88,6 +94,110 @@ export default async function TrendsPage() {
           strokeClass="stroke-sleep"
           label="Sueño últimos 28 días"
         />
+      </section>
+
+      <section className="rounded-xl border border-line bg-turf p-4">
+        <h2 className="mb-2 flex items-center gap-1.5 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+          <span>Recuperación</span>
+          <InfoTip term="recovery" id="trends" />
+        </h2>
+        {recoveryHasAnyData ? (
+          <div className="space-y-4">
+            {recovery.recoveryScore.points.length > 0 ? (
+              <div>
+                <span className="mb-1 block text-xs text-dim">Recovery (Whoop)</span>
+                <MetricChart
+                  points={recovery.recoveryScore.points}
+                  windowStart={windowStart}
+                  today={t.today}
+                  yMin={0}
+                  yMax={100}
+                  mean={recovery.recoveryScore.mean}
+                  strokeClass="stroke-ok"
+                  label="Recovery últimos 28 días"
+                  connectGaps
+                />
+              </div>
+            ) : null}
+            {recovery.hrvRmssd.points.length > 0 ? (
+              <div>
+                <span className="mb-1 flex items-center gap-1.5 text-xs text-dim">
+                  VFC (RMSSD, Whoop)
+                  <InfoTip term="vfc" id="rmssd" />
+                </span>
+                <MetricChart
+                  points={recovery.hrvRmssd.points}
+                  windowStart={windowStart}
+                  today={t.today}
+                  yMin={0}
+                  yMax={Math.max(...recovery.hrvRmssd.points.map((p) => p.value)) + 10}
+                  mean={recovery.hrvRmssd.mean}
+                  strokeClass="stroke-flood"
+                  label="VFC RMSSD últimos 28 días"
+                  connectGaps
+                />
+              </div>
+            ) : null}
+            {recovery.hrvSdnn.points.length > 0 ? (
+              <div>
+                <span className="mb-1 flex items-center gap-1.5 text-xs text-dim">
+                  VFC (SDNN, Apple)
+                  <InfoTip term="vfc" id="sdnn" />
+                </span>
+                <MetricChart
+                  points={recovery.hrvSdnn.points}
+                  windowStart={windowStart}
+                  today={t.today}
+                  yMin={0}
+                  yMax={Math.max(...recovery.hrvSdnn.points.map((p) => p.value)) + 10}
+                  mean={recovery.hrvSdnn.mean}
+                  strokeClass="stroke-flood"
+                  label="VFC SDNN últimos 28 días"
+                  connectGaps
+                />
+              </div>
+            ) : null}
+            {recovery.restingHr.points.length > 0 ? (
+              <div>
+                <span className="mb-1 flex items-center gap-1.5 text-xs text-dim">
+                  FC en reposo
+                  <InfoTip term="fc_reposo" id="trends" />
+                </span>
+                <MetricChart
+                  points={recovery.restingHr.points}
+                  windowStart={windowStart}
+                  today={t.today}
+                  yMin={Math.min(...recovery.restingHr.points.map((p) => p.value)) - 5}
+                  yMax={Math.max(...recovery.restingHr.points.map((p) => p.value)) + 5}
+                  mean={recovery.restingHr.mean}
+                  strokeClass="stroke-high"
+                  label="FC en reposo últimos 28 días"
+                  connectGaps
+                />
+              </div>
+            ) : null}
+            {recovery.sleepDevice.points.length > 0 ? (
+              <div>
+                <span className="mb-1 block text-xs text-dim">Sueño (dispositivo)</span>
+                <MetricChart
+                  points={recovery.sleepDevice.points}
+                  windowStart={windowStart}
+                  today={t.today}
+                  yMin={sleepMin}
+                  yMax={sleepMax}
+                  mean={recovery.sleepDevice.mean}
+                  strokeClass="stroke-sleep"
+                  label="Sueño (dispositivo) últimos 28 días"
+                  connectGaps
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-sm text-faint">
+            Conectá una fuente en Fuentes para ver datos objetivos de recuperación.
+          </p>
+        )}
       </section>
 
       <section className="rounded-xl border border-line bg-turf p-4">

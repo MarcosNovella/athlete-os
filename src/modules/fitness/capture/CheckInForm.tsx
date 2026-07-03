@@ -25,6 +25,8 @@ type Props = {
   yesterdayInitial: CheckInValues | null;
   /** D12: sleep stepper defaults to the last known value. */
   defaultSleepHours: number;
+  /** V2.2 (ADR-024): non-null only when defaultSleepHours came from a connected device, today, unsaved. */
+  sleepPrefillSource: string | null;
 };
 
 const SCALES: Array<{ key: keyof Omit<CheckInValues, 'sleep_hours'>; label: string }> = [
@@ -65,6 +67,7 @@ export function CheckInForm(props: Props) {
         date={date}
         initial={initial}
         defaultSleepHours={props.defaultSleepHours}
+        sleepPrefillSource={day === 'today' && !initial ? props.sleepPrefillSource : null}
         backfill={day === 'yesterday'}
       />
     </section>
@@ -75,11 +78,13 @@ function Fields({
   date,
   initial,
   defaultSleepHours,
+  sleepPrefillSource,
   backfill,
 }: {
   date: string;
   initial: CheckInValues | null;
   defaultSleepHours: number;
+  sleepPrefillSource: string | null;
   backfill: boolean;
 }) {
   const [sleepHours, setSleepHours] = useState(initial?.sleep_hours ?? defaultSleepHours);
@@ -155,6 +160,9 @@ function Fields({
           <Stepper onClick={() => setSleepHours((h) => Math.max(0, h - 0.25))} label="−15 min" />
           <Stepper onClick={() => setSleepHours((h) => Math.min(24, h + 0.25))} label="+15 min" />
         </div>
+        {sleepPrefillSource ? (
+          <p className="mt-1 text-xs text-faint">{sleepPrefillSource}</p>
+        ) : null}
       </div>
 
       {SCALES.map(({ key, label }) => (

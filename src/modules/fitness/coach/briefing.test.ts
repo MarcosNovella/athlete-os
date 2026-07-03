@@ -118,6 +118,37 @@ describe('buildBriefing', () => {
     expect(b).toContain('cafeína 7 días');
   });
 
+  it('falls back honestly when no device is connected', () => {
+    const b = briefingFor(29);
+    expect(b).toContain('## Recuperación (dato de dispositivo)');
+    expect(b).toContain('Sin datos de dispositivo todavía.');
+  });
+
+  it('renders recovery lines with device framing and a 28d mean', () => {
+    const { obs, today } = fixture(29);
+    for (let i = 20; i < 29; i++) {
+      obs.push({
+        metric_key: 'recovery_score',
+        value: 70 + i,
+        effective_date: dateAt('2026-06-01', i),
+      });
+      obs.push({
+        metric_key: 'hrv_rmssd',
+        value: 65,
+        effective_date: dateAt('2026-06-01', i),
+      });
+    }
+    const b = buildBriefing({
+      displayName: 'Marcos',
+      snapshot: computeSnapshot(obs, today),
+      trends: computeTrends(obs, today),
+      recentSessions: [],
+    });
+    expect(b).toContain('Recovery (Whoop): 98% (2026-06-29)');
+    expect(b).toContain('(dato de dispositivo)');
+    expect(b).toContain('VFC RMSSD (Whoop): 65 ms');
+  });
+
   it('caps the monotony display but keeps the exact value for the LLM', () => {
     const start = '2026-06-01';
     const obs: ObservationLite[] = [];

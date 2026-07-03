@@ -469,6 +469,29 @@ function previewOutcomes(days: PlannedDay[], today: string): void {
   console.log(`  nutrition7d: ${JSON.stringify(outcomes.nutrition7d)}`);
 }
 
+/** V2.2 (ADR-024): validates the recovery trends path (device obs -> engine) before any DB write. */
+function previewRecoveryTrends(days: PlannedDay[], today: string): void {
+  const { whoop, apple } = buildDeviceObservations(days);
+  const deviceObs: ObservationLite[] = [...whoop, ...apple].map((o) => ({
+    metric_key: o.metric_key,
+    value: o.value,
+    effective_date: o.date,
+  }));
+  const { recovery } = computeTrends([...allObservations(days), ...deviceObs], today);
+  console.log('— Recovery trends preview (computed by the real trends code) —');
+  console.log(
+    `  recoveryScore: ${recovery.recoveryScore.points.length} pts, mean=${recovery.recoveryScore.mean}`,
+  );
+  console.log(`  hrvRmssd: ${recovery.hrvRmssd.points.length} pts, mean=${recovery.hrvRmssd.mean}`);
+  console.log(`  hrvSdnn: ${recovery.hrvSdnn.points.length} pts, mean=${recovery.hrvSdnn.mean}`);
+  console.log(
+    `  restingHr: ${recovery.restingHr.points.length} pts, mean=${recovery.restingHr.mean}`,
+  );
+  console.log(
+    `  sleepDevice: ${recovery.sleepDevice.points.length} pts, mean=${recovery.sleepDevice.mean}`,
+  );
+}
+
 // --- DB write path (auth + RPC) ----------------------------------------------
 
 function requireEnv(name: string): string {
@@ -601,6 +624,7 @@ async function main(): Promise<void> {
     previewSnapshot(days, today);
     previewOutcomes(days, today);
     previewDevices(days);
+    previewRecoveryTrends(days, today);
     return;
   }
 
@@ -616,6 +640,7 @@ async function main(): Promise<void> {
   previewSnapshot(days, today);
   previewOutcomes(days, today);
   previewDevices(days);
+  previewRecoveryTrends(days, today);
   await writeDays(supabase, days, subjectId);
   await writeDeviceBatches(supabase, days, subjectId);
 

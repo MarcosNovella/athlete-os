@@ -149,3 +149,39 @@ describe('computeTrends outcomes', () => {
     expect(t.outcomes.nutrition7d.caffeineDays).toBe(7);
   });
 });
+
+describe('computeTrends recovery (V2.2 passive inputs)', () => {
+  const start = '2026-06-11';
+  const days = 21;
+  const today = dateAt(start, days - 1);
+
+  it('is empty when no device is connected (no observations)', () => {
+    const t = computeTrends([], today);
+    expect(t.recovery.recoveryScore.points).toEqual([]);
+    expect(t.recovery.recoveryScore.mean).toBeNull();
+    expect(t.recovery.hrvRmssd.points).toEqual([]);
+    expect(t.recovery.hrvSdnn.points).toEqual([]);
+    expect(t.recovery.restingHr.points).toEqual([]);
+    expect(t.recovery.sleepDevice.points).toEqual([]);
+  });
+
+  it('preserves gaps and exposes a baseline mean once formed', () => {
+    const obs: ObservationLite[] = [];
+    for (let i = 0; i < days; i++) {
+      if (i === 10) continue; // gap day — device offline
+      obs.push({
+        metric_key: 'recovery_score',
+        value: 60 + (i % 5),
+        effective_date: dateAt(start, i),
+      });
+      obs.push({ metric_key: 'hrv_rmssd', value: 70, effective_date: dateAt(start, i) });
+    }
+    const t = computeTrends(obs, today);
+    expect(t.recovery.recoveryScore.points).toHaveLength(days - 1);
+    expect(t.recovery.recoveryScore.points.some((p) => p.date === dateAt(start, 10))).toBe(false);
+    expect(t.recovery.recoveryScore.mean).not.toBeNull();
+    expect(t.recovery.hrvRmssd.mean).toBe(70);
+    // hrv_sdnn/resting_hr/sleep_device untouched by this fixture — still empty.
+    expect(t.recovery.hrvSdnn.points).toEqual([]);
+  });
+});

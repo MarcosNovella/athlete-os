@@ -29,34 +29,51 @@ export default async function TodayPage() {
   const yesterday = addDaysIso(today, -1);
   const supabase = await createClient();
 
-  const [snapshot, todayCheckin, yesterdayCheckin, todaySessions] = await Promise.all([
-    getEngineSnapshot(subject),
-    supabase
-      .from('daily_checkins')
-      .select(
-        'sleep_hours, sleep_quality, readiness, soreness, stress, bodyweight_kg, nutrition_adherence, alcohol, caffeine',
-      )
-      .eq('subject_id', subject.id)
-      .eq('date', today)
-      .maybeSingle(),
-    supabase
-      .from('daily_checkins')
-      .select(
-        'sleep_hours, sleep_quality, readiness, soreness, stress, bodyweight_kg, nutrition_adherence, alcohol, caffeine',
-      )
-      .eq('subject_id', subject.id)
-      .eq('date', yesterday)
-      .maybeSingle(),
-    supabase
-      .from('training_sessions')
-      .select('id, modality, duration_min, srpe, load, notes')
-      .eq('subject_id', subject.id)
-      .eq('date', today)
-      .order('started_at', { ascending: true }),
-  ]);
+  const [snapshot, todayCheckin, yesterdayCheckin, todaySessions, todayDeviceSleep] =
+    await Promise.all([
+      getEngineSnapshot(subject),
+      supabase
+        .from('daily_checkins')
+        .select(
+          'sleep_hours, sleep_quality, readiness, soreness, stress, bodyweight_kg, nutrition_adherence, alcohol, caffeine',
+        )
+        .eq('subject_id', subject.id)
+        .eq('date', today)
+        .maybeSingle(),
+      supabase
+        .from('daily_checkins')
+        .select(
+          'sleep_hours, sleep_quality, readiness, soreness, stress, bodyweight_kg, nutrition_adherence, alcohol, caffeine',
+        )
+        .eq('subject_id', subject.id)
+        .eq('date', yesterday)
+        .maybeSingle(),
+      supabase
+        .from('training_sessions')
+        .select('id, modality, duration_min, srpe, load, notes')
+        .eq('subject_id', subject.id)
+        .eq('date', today)
+        .order('started_at', { ascending: true }),
+      // V2.2 passive inputs (ADR-024): device sleep prefills the check-in field, editable.
+      supabase
+        .from('observations')
+        .select('value')
+        .eq('subject_id', subject.id)
+        .eq('metric_key', 'sleep_device')
+        .eq('effective_date', today)
+        .maybeSingle(),
+    ]);
 
   const sessions = todaySessions.data ?? [];
   const dailyLoad = sessions.reduce((sum, s) => sum + (s.load ?? 0), 0);
+
+  const deviceSleepHours = todayDeviceSleep.data?.value ?? null;
+  const defaultSleepHours =
+    !todayCheckin.data && deviceSleepHours !== null
+      ? Math.round(deviceSleepHours * 4) / 4
+      : (yesterdayCheckin.data?.sleep_hours ?? 8);
+  const sleepPrefillSource =
+    !todayCheckin.data && deviceSleepHours !== null ? 'desde tu dispositivo — editable' : null;
 
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
@@ -94,7 +111,8 @@ export default async function TodayPage() {
         yesterdayDate={yesterday}
         todayInitial={todayCheckin.data}
         yesterdayInitial={yesterdayCheckin.data}
-        defaultSleepHours={yesterdayCheckin.data?.sleep_hours ?? 8}
+        defaultSleepHours={defaultSleepHours}
+        sleepPrefillSource={sleepPrefillSource}
       />
 
       <SessionForm todayDate={today} yesterdayDate={yesterday} />

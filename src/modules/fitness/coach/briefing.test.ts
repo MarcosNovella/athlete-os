@@ -72,6 +72,8 @@ describe('buildBriefing', () => {
     expect(b).toContain('(ayer: ');
     expect(b).toContain('tu media'); // z tier wording on readiness/sleep lines
     expect(b).toMatch(/Strain: .+ semanas/); // personal rank framing
+    expect(b).toContain('| Δ carga |'); // weekly table carries the delta column
+    expect(b).toContain('(parcial)'); // running week marked softly
   });
 
   it('caps the monotony display but keeps the exact value for the LLM', () => {

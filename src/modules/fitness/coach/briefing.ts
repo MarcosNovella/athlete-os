@@ -100,11 +100,14 @@ export function buildBriefing({
   );
 
   lines.push('', '## Últimas semanas (lunes a domingo)');
-  lines.push('| semana | carga (AU) | sesiones | sueño prom (h) | readiness prom | monotonía |');
-  lines.push('|---|---|---|---|---|---|');
+  lines.push(
+    '| semana | carga (AU) | Δ carga | sesiones | sueño prom (h) | readiness prom | monotonía |',
+  );
+  lines.push('|---|---|---|---|---|---|---|');
   for (const w of t.weeks) {
+    const delta = w.loadDeltaPct !== null ? formatDeltaPct(w.loadDeltaPct) : '—';
     lines.push(
-      `| ${w.weekStart} | ${w.totalLoad} | ${w.sessionCount} | ${w.avgSleep ?? '—'} | ${w.avgReadiness ?? '—'} | ${w.monotony ?? '—'} |`,
+      `| ${w.weekStart}${w.isPartial ? ' (parcial)' : ''} | ${w.totalLoad} | ${delta} | ${w.sessionCount} | ${w.avgSleep ?? '—'} | ${w.avgReadiness ?? '—'} | ${w.monotonyDisplay ?? '—'} |`,
     );
   }
 

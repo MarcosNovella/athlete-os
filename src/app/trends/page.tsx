@@ -3,15 +3,18 @@ import { getCurrentSubject } from '@/core/subjects/service';
 import { addDaysIso } from '@/lib/dates';
 import { AcwrChart, LoadChart, MetricChart } from '@/modules/fitness/dashboard/charts';
 import { InfoTip } from '@/modules/fitness/dashboard/InfoTip';
+import { SignalsCue } from '@/modules/fitness/dashboard/SignalsCue';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { WeeklyTable } from '@/modules/fitness/dashboard/WeeklyTable';
-import { getTrends } from '@/modules/fitness/engine/service';
+import { getEngineSnapshot, getTrends } from '@/modules/fitness/engine/service';
+import { signalSummary } from '@/modules/fitness/engine/snapshot';
 
 export default async function TrendsPage() {
   const subject = await getCurrentSubject();
   if (!subject) redirect('/');
 
-  const t = await getTrends(subject);
+  // Same per-request observation fetch under both (React cache in service.ts).
+  const [t, snapshot] = await Promise.all([getTrends(subject), getEngineSnapshot(subject)]);
   const windowStart = addDaysIso(t.today, -27);
 
   const sleepValues = t.sleep.map((v) => v.value);
@@ -21,9 +24,12 @@ export default async function TrendsPage() {
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
       <header className="pt-2">
-        <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
-          Tendencias
-        </h1>
+        <div className="flex items-end justify-between">
+          <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
+            Tendencias
+          </h1>
+          <SignalsCue summary={signalSummary(snapshot.flags)} linkToToday />
+        </div>
         <p className="mt-1 font-mono text-[10px] text-faint">últimos 28 días</p>
       </header>
 

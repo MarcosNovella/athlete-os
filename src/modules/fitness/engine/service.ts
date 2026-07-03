@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { computeSnapshot, type EngineSnapshot, type ObservationLite } from './snapshot';
@@ -37,39 +38,48 @@ export async function fetchAllPages<T>(
 
 type EngineSubject = { id: string; timezone: string };
 
-async function fetchEngineObservations(
-  subject: EngineSubject,
-): Promise<{ obs: ObservationLite[]; today: string }> {
-  const today = localDateInTz(subject.timezone);
-  const from = addDaysIso(today, -WINDOW_DAYS);
+/**
+ * Per-request memo (React cache): a page needing snapshot + trends — or the
+ * header señales cue — reuses ONE observations fetch. Keyed by primitives so
+ * differing subject object identities still hit the memo. Outside a React
+ * request (scripts/tests) cache() degrades to a plain call.
+ */
+const fetchEngineObservations = cache(
+  async (
+    subjectId: string,
+    timezone: string,
+  ): Promise<{ obs: ObservationLite[]; today: string }> => {
+    const today = localDateInTz(timezone);
+    const from = addDaysIso(today, -WINDOW_DAYS);
 
-  const supabase = await createClient();
-  const obs = await fetchAllPages<ObservationLite>(async (fromRow, toRow) => {
-    const { data, error } = await supabase
-      .from('observations')
-      .select('metric_key, value, effective_date')
-      .eq('subject_id', subject.id)
-      .in('metric_key', ENGINE_METRICS)
-      .gte('effective_date', from)
-      .lte('effective_date', today)
-      .order('effective_date', { ascending: true })
-      // Tiebreaker: rows sharing an effective_date need a stable order, or page
-      // boundaries could duplicate/skip rows across requests.
-      .order('id', { ascending: true })
-      .range(fromRow, toRow);
-    if (error) throw new Error(`engine observations fetch failed: ${error.message}`);
-    return data ?? [];
-  });
+    const supabase = await createClient();
+    const obs = await fetchAllPages<ObservationLite>(async (fromRow, toRow) => {
+      const { data, error } = await supabase
+        .from('observations')
+        .select('metric_key, value, effective_date')
+        .eq('subject_id', subjectId)
+        .in('metric_key', ENGINE_METRICS)
+        .gte('effective_date', from)
+        .lte('effective_date', today)
+        .order('effective_date', { ascending: true })
+        // Tiebreaker: rows sharing an effective_date need a stable order, or page
+        // boundaries could duplicate/skip rows across requests.
+        .order('id', { ascending: true })
+        .range(fromRow, toRow);
+      if (error) throw new Error(`engine observations fetch failed: ${error.message}`);
+      return data ?? [];
+    });
 
-  return { obs, today };
-}
+    return { obs, today };
+  },
+);
 
 export async function getEngineSnapshot(subject: EngineSubject): Promise<EngineSnapshot> {
-  const { obs, today } = await fetchEngineObservations(subject);
+  const { obs, today } = await fetchEngineObservations(subject.id, subject.timezone);
   return computeSnapshot(obs, today);
 }
 
 export async function getTrends(subject: EngineSubject): Promise<TrendsData> {
-  const { obs, today } = await fetchEngineObservations(subject);
+  const { obs, today } = await fetchEngineObservations(subject.id, subject.timezone);
   return computeTrends(obs, today);
 }

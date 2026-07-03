@@ -8,9 +8,11 @@ import { CheckInForm } from '@/modules/fitness/capture/CheckInForm';
 import { OfflineSync } from '@/modules/fitness/capture/OfflineSync';
 import { SessionForm } from '@/modules/fitness/capture/SessionForm';
 import { InfoTip } from '@/modules/fitness/dashboard/InfoTip';
+import { SignalsCue } from '@/modules/fitness/dashboard/SignalsCue';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { TodayStatePanel } from '@/modules/fitness/dashboard/TodayStatePanel';
 import { getEngineSnapshot } from '@/modules/fitness/engine/service';
+import { signalSummary } from '@/modules/fitness/engine/snapshot';
 
 export default async function TodayPage() {
   const subject = await getCurrentSubject();
@@ -60,7 +62,10 @@ export default async function TodayPage() {
           <span className="font-display text-xs font-semibold uppercase tracking-[0.24em] text-dim">
             Athlete OS
           </span>
-          <span className="ml-auto font-mono text-[10px] text-faint">{today}</span>
+          <span className="ml-auto flex items-center gap-3">
+            <SignalsCue summary={signalSummary(snapshot.flags)} />
+            <span className="font-mono text-[10px] text-faint">{today}</span>
+          </span>
         </div>
         <div className="mt-3 flex items-end justify-between">
           <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">

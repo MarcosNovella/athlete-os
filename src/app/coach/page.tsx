@@ -5,8 +5,10 @@ import { createClient } from '@/lib/supabase/server';
 import { updateInsightStatus } from '@/modules/fitness/coach/actions';
 import { buildBriefing } from '@/modules/fitness/coach/briefing';
 import { CopyButton } from '@/modules/fitness/coach/CopyButton';
+import { SignalsCue } from '@/modules/fitness/dashboard/SignalsCue';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { getEngineSnapshot, getTrends } from '@/modules/fitness/engine/service';
+import { signalSummary } from '@/modules/fitness/engine/snapshot';
 
 const KIND_LABEL: Record<string, string> = {
   hypothesis: 'Hipótesis',
@@ -67,9 +69,12 @@ export default async function CoachPage() {
   return (
     <main className="mx-auto w-full max-w-md space-y-4 p-4 pb-16">
       <header className="pt-2">
-        <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
-          Coach
-        </h1>
+        <div className="flex items-end justify-between">
+          <h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight">
+            Coach
+          </h1>
+          <SignalsCue summary={signalSummary(snapshot.flags)} linkToToday />
+        </div>
         <p className="mt-1 font-mono text-[10px] text-faint">síntesis, hipótesis y tu briefing</p>
       </header>
 

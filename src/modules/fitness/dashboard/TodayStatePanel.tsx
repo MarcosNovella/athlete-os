@@ -1,22 +1,63 @@
-import { monotonyDisplay } from '@/modules/fitness/engine/load';
-import type { EngineFlag, EngineSnapshot, MetricState } from '@/modules/fitness/engine/snapshot';
+import type { ZTier } from '@/modules/fitness/engine/baselines';
+import {
+  type AcwrBand,
+  formatDeltaPct,
+  type MonotonyBand,
+  monotonyDisplay,
+} from '@/modules/fitness/engine/load';
+import type {
+  EngineFlag,
+  EngineSnapshot,
+  MetricState,
+  StrainState,
+} from '@/modules/fitness/engine/snapshot';
 import type { UnlockKey } from '@/modules/fitness/engine/unlock';
+import { AcwrGauge } from './charts';
+import { InfoTip } from './InfoTip';
 
 /** "Estado de hoy" — the immediate reward (D12). Pure display → RSC (R1). */
 
-const BAND_STYLE: Record<string, string> = {
+const BAND_STYLE: Record<AcwrBand, string> = {
   low: 'bg-turf-2 text-dim',
   optimal: 'bg-ok/15 text-ok',
   caution: 'bg-flood/15 text-flood',
   high: 'bg-high/15 text-high',
 };
 
-const BAND_LABEL: Record<string, string> = {
+const BAND_LABEL: Record<AcwrBand, string> = {
   low: 'baja',
   optimal: 'óptima',
   caution: 'precaución',
   high: 'alta',
 };
+
+const MONOTONY_BAND_STYLE: Record<MonotonyBand, string> = {
+  ok: 'bg-ok/15 text-ok',
+  caution: 'bg-flood/15 text-flood',
+  high: 'bg-high/15 text-high',
+};
+
+const MONOTONY_BAND_LABEL: Record<MonotonyBand, string> = {
+  ok: 'ok',
+  caution: 'precaución',
+  high: 'alta',
+};
+
+const TIER_UI: Record<ZTier, { cls: string; text: string }> = {
+  way_below: { cls: 'text-high', text: '↓↓ MUY bajo tu media' },
+  below: { cls: 'text-flood', text: '↓ bajo tu media' },
+  typical: { cls: 'text-dim', text: '→ en tu media' },
+  above: { cls: 'text-ok', text: '↑ sobre tu media' },
+  way_above: { cls: 'text-ok', text: '↑↑ MUY sobre tu media' },
+};
+
+/** Personal rank framing — mirrors the briefing wording (same story). */
+function strainRankText(s: StrainState): string {
+  if (s.rank === null || s.of === null) return 'aún sin semanas comparables';
+  if (s.rank === 1) return `la más alta de tus últimas ${s.of} semanas`;
+  if (s.rank === s.of) return `la más baja de tus últimas ${s.of} semanas`;
+  return `puesto ${s.rank} de tus últimas ${s.of} semanas`;
+}
 
 const UNLOCK_LABEL: Record<UnlockKey, string> = {
   acute_load: 'Carga aguda (7d)',
@@ -38,20 +79,15 @@ function flagText(flag: EngineFlag): string {
 }
 
 function ZBadge({ state }: { state: NonNullable<MetricState> }) {
-  if (state.z === null) {
+  if (state.tier === null) {
     return (
       <span className="font-mono text-[10px] text-faint">
         {state.baselineFormed ? '' : 'baseline formándose'}
       </span>
     );
   }
-  const up = state.z >= 0.5;
-  const down = state.z <= -0.5;
-  return (
-    <span className={`text-xs font-medium ${down ? 'text-high' : up ? 'text-ok' : 'text-dim'}`}>
-      {down ? '↓ bajo tu media' : up ? '↑ sobre tu media' : '→ en tu media'}
-    </span>
-  );
+  const tier = TIER_UI[state.tier];
+  return <span className={`text-xs font-medium ${tier.cls}`}>{tier.text}</span>;
 }
 
 export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
@@ -75,6 +111,7 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
         {snapshot.readiness ? (
           <Hero
             label="Readiness"
+            info={<InfoTip term="readiness" />}
             value={String(snapshot.readiness.value)}
             unit="/5"
             extra={<ZBadge state={snapshot.readiness} />}
@@ -82,6 +119,7 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
         ) : (
           <Hero
             label="Readiness"
+            info={<InfoTip term="readiness" />}
             value="—"
             unit=""
             extra={<span className="font-mono text-[10px] text-faint">sin check-in hoy</span>}
@@ -90,6 +128,7 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
         {snapshot.sleep ? (
           <Hero
             label="Sueño"
+            info={<InfoTip term="baseline" />}
             value={String(snapshot.sleep.value)}
             unit="h"
             extra={<ZBadge state={snapshot.sleep} />}
@@ -101,35 +140,75 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
 
       {/* Load numbers: what the athlete DID. */}
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <Stat label="Carga hoy" value={`${snapshot.todayLoad}`} unit="AU" />
-        <Stat label="Carga 7 días" value={`${snapshot.weekLoad}`} unit="AU" />
+        <Stat
+          label="Carga hoy"
+          info={<InfoTip term="au" />}
+          value={`${snapshot.todayLoad}`}
+          unit="AU"
+        />
+        <Stat
+          label="Carga 7 días"
+          value={`${snapshot.weekLoad}`}
+          unit="AU"
+          extra={
+            snapshot.weekLoadDeltaPct !== null ? (
+              <span className="text-xs text-dim">
+                {formatDeltaPct(snapshot.weekLoadDeltaPct)} vs semana previa
+              </span>
+            ) : null
+          }
+        />
         {snapshot.acute7 !== null ? (
-          <Stat label="Aguda · EWMA 7d" value={`${snapshot.acute7}`} unit="AU" />
-        ) : null}
-        {snapshot.acwr !== null ? (
-          <div className="rounded-lg bg-turf-2 p-3">
-            <p className="font-mono text-[10px] uppercase tracking-wide text-faint">
-              ACWR{snapshot.acwr.provisional ? ' · provisional' : ''}
-            </p>
-            <p className="mt-0.5 flex items-center gap-2">
-              <span className="font-display text-2xl font-semibold tabular-nums">
-                {snapshot.acwr.value}
-              </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${BAND_STYLE[snapshot.acwr.band]}`}
-              >
-                {BAND_LABEL[snapshot.acwr.band]}
-              </span>
-            </p>
-          </div>
+          <Stat
+            label="Aguda · EWMA 7d"
+            info={<InfoTip term="ewma" />}
+            value={`${snapshot.acute7}`}
+            unit="AU"
+          />
         ) : null}
         {snapshot.monotony !== null ? (
           <Stat
-            label="Monotonía · Strain"
-            value={`${snapshot.monotony.display} · ${snapshot.strain?.value ?? '—'}`}
+            label="Monotonía"
+            info={<InfoTip term="monotony" />}
+            value={snapshot.monotony.display}
+            extra={
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${MONOTONY_BAND_STYLE[snapshot.monotony.band]}`}
+              >
+                {MONOTONY_BAND_LABEL[snapshot.monotony.band]}
+              </span>
+            }
+          />
+        ) : null}
+        {snapshot.strain !== null ? (
+          <Stat
+            label="Strain"
+            info={<InfoTip term="strain" />}
+            value={String(Math.round(snapshot.strain.value))}
+            extra={<span className="text-xs text-dim">{strainRankText(snapshot.strain)}</span>}
           />
         ) : null}
       </div>
+
+      {snapshot.acwr !== null ? (
+        <div className="mt-2 rounded-lg bg-turf-2 p-3">
+          <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
+            <span>ACWR{snapshot.acwr.provisional ? ' · provisional' : ''}</span>
+            <InfoTip term="acwr" />
+          </p>
+          <p className="mt-0.5 flex items-center gap-2">
+            <span className="font-display text-2xl font-semibold tabular-nums">
+              {snapshot.acwr.value}
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${BAND_STYLE[snapshot.acwr.band]}`}
+            >
+              {BAND_LABEL[snapshot.acwr.band]}
+            </span>
+          </p>
+          <AcwrGauge value={snapshot.acwr.value} yesterday={snapshot.acwr.yesterday} />
+        </div>
+      ) : null}
 
       {snapshot.flags.length > 0 ? (
         <ul className="mt-3 space-y-1.5">
@@ -165,15 +244,20 @@ function Hero({
   value,
   unit,
   extra,
+  info,
 }: {
   label: string;
   value: string;
   unit: string;
   extra?: React.ReactNode;
+  info?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg bg-turf-2 p-3">
-      <p className="font-mono text-[10px] uppercase tracking-wide text-faint">{label}</p>
+      <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
+        <span>{label}</span>
+        {info}
+      </p>
       <p className="mt-0.5 font-display text-4xl font-semibold leading-none tabular-nums">
         {value}
         {unit ? <span className="ml-0.5 text-lg font-medium text-dim">{unit}</span> : null}
@@ -183,14 +267,30 @@ function Hero({
   );
 }
 
-function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Stat({
+  label,
+  value,
+  unit,
+  extra,
+  info,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  extra?: React.ReactNode;
+  info?: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg bg-turf-2 p-3">
-      <p className="font-mono text-[10px] uppercase tracking-wide text-faint">{label}</p>
+      <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
+        <span>{label}</span>
+        {info}
+      </p>
       <p className="mt-0.5 font-display text-2xl font-semibold leading-none tabular-nums">
         {value}
         {unit ? <span className="ml-0.5 text-sm font-medium text-dim">{unit}</span> : null}
       </p>
+      {extra !== undefined && extra !== null ? <div className="mt-1">{extra}</div> : null}
     </div>
   );
 }

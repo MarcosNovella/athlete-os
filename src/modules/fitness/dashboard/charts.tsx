@@ -99,6 +99,102 @@ export function LoadChart({
   );
 }
 
+/* ---- ACWR gauge (roadmap §A.1) ---- */
+
+const GAUGE_LEFT = 10;
+const GAUGE_RIGHT = 350;
+/** Display ceiling only — stored ACWR values are never clamped. */
+export const GAUGE_MAX = 2;
+
+/** Pure x-position on the 0→GAUGE_MAX scale, clamped to the track. */
+export function gaugeX(value: number): number {
+  const clamped = Math.min(GAUGE_MAX, Math.max(0, value));
+  return GAUGE_LEFT + (clamped / GAUGE_MAX) * (GAUGE_RIGHT - GAUGE_LEFT);
+}
+
+const GAUGE_ZONES = [
+  { from: 0, to: 0.8, cls: 'fill-line/40' },
+  { from: 0.8, to: 1.3, cls: 'fill-ok/15' },
+  { from: 1.3, to: 1.5, cls: 'fill-flood/15' },
+  { from: 1.5, to: 2, cls: 'fill-high/15' },
+] as const;
+
+const GAUGE_TICKS = [0, 0.8, 1.3, 1.5, 2] as const;
+
+/** Horizontal ACWR scale with shaded zones, today marker and yesterday ghost. */
+export function AcwrGauge({ value, yesterday }: { value: number; yesterday: number | null }) {
+  const trackTop = 16;
+  const trackBottom = 30;
+  // Keep the value label inside the viewBox even at the extremes.
+  const labelX = Math.min(GAUGE_RIGHT - 12, Math.max(GAUGE_LEFT + 12, gaugeX(value)));
+  return (
+    <svg
+      viewBox="0 0 360 46"
+      className="w-full"
+      role="img"
+      aria-label={`ACWR ${value} en escala 0 a 2`}
+    >
+      {GAUGE_ZONES.map((z) => (
+        <rect
+          key={z.from}
+          x={gaugeX(z.from)}
+          y={trackTop}
+          width={gaugeX(z.to) - gaugeX(z.from)}
+          height={trackBottom - trackTop}
+          className={z.cls}
+        />
+      ))}
+      {GAUGE_TICKS.map((t) => (
+        <g key={t}>
+          <line
+            x1={gaugeX(t)}
+            y1={trackBottom}
+            x2={gaugeX(t)}
+            y2={trackBottom + 3}
+            className="stroke-line"
+          />
+          <text
+            x={gaugeX(t)}
+            y={44}
+            textAnchor="middle"
+            className="fill-faint font-mono text-[8px]"
+          >
+            {t}
+          </text>
+        </g>
+      ))}
+      {yesterday !== null ? (
+        <line
+          data-marker="yesterday"
+          x1={gaugeX(yesterday)}
+          y1={trackTop - 2}
+          x2={gaugeX(yesterday)}
+          y2={trackBottom + 2}
+          className="stroke-chalk/40"
+          strokeWidth="1.5"
+        />
+      ) : null}
+      <line
+        data-marker="today"
+        x1={gaugeX(value)}
+        y1={trackTop - 3}
+        x2={gaugeX(value)}
+        y2={trackBottom + 3}
+        className="stroke-chalk"
+        strokeWidth="2"
+      />
+      <text
+        x={labelX}
+        y={trackTop - 6}
+        textAnchor="middle"
+        className="fill-chalk font-mono text-[10px] font-semibold"
+      >
+        {value > GAUGE_MAX ? `${value} »` : value}
+      </text>
+    </svg>
+  );
+}
+
 /**
  * Small line chart for a daily check-in metric over the last 28 days.
  * Gaps stay visual gaps: the line only connects CONSECUTIVE days.

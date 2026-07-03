@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CheckInForm } from '@/modules/fitness/capture/CheckInForm';
 import { OfflineSync } from '@/modules/fitness/capture/OfflineSync';
 import { SessionForm } from '@/modules/fitness/capture/SessionForm';
+import { InfoTip } from '@/modules/fitness/dashboard/InfoTip';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
 import { TodayStatePanel } from '@/modules/fitness/dashboard/TodayStatePanel';
 import { getEngineSnapshot } from '@/modules/fitness/engine/service';
@@ -91,8 +92,9 @@ export default async function TodayPage() {
 
       <section className="rounded-xl border border-line bg-turf p-4">
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
-            Sesiones de hoy
+          <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold uppercase tracking-[0.16em] text-dim">
+            <span>Sesiones de hoy</span>
+            <InfoTip term="srpe" />
           </h2>
           <span className="text-sm text-dim">
             carga total:{' '}

@@ -240,3 +240,5 @@ Errors → guardrails born:
 
 Merge gate PENDING: branch pushed, Vercel preview not yet requested — Marcos to review
 before merge (per house style, no auto-merge without explicit approval).
+
+> HARVESTED through Session 11 (2026-07-03) on 2026-07-03 → 0 ADRs (ADR-024 already filed inline), 1 playbook (whoop-device-arrival, already added inline in M5), 1 candidate (C-013, new, seen_in 1 — not promotable), 0 memories

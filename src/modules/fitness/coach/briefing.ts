@@ -1,4 +1,5 @@
-import type { EngineSnapshot } from '@/modules/fitness/engine/snapshot';
+import { formatDeltaPct } from '@/modules/fitness/engine/load';
+import type { EngineSnapshot, StrainState } from '@/modules/fitness/engine/snapshot';
 import type { TrendsData } from '@/modules/fitness/engine/trends';
 
 /**
@@ -30,6 +31,32 @@ const BAND_ES: Record<string, string> = {
   high: 'alta',
 };
 
+const MONOTONY_BAND_ES: Record<'ok' | 'caution' | 'high', string> = {
+  ok: 'ok',
+  caution: 'precaución',
+  high: 'alta',
+};
+
+const TIER_ES: Record<string, string> = {
+  way_below: 'MUY bajo tu media',
+  below: 'bajo tu media',
+  typical: 'en tu media',
+  above: 'sobre tu media',
+  way_above: 'MUY sobre tu media',
+};
+
+/** "la más alta de tus últimas 4 semanas (rango 1493–4890)" — personal framing only. */
+function strainPhraseEs(s: StrainState): string {
+  if (s.rank === null || s.of === null) return `${s.value} (aún sin semanas previas comparables)`;
+  const position =
+    s.rank === 1
+      ? `la más alta de tus últimas ${s.of} semanas`
+      : s.rank === s.of
+        ? `la más baja de tus últimas ${s.of} semanas`
+        : `puesto ${s.rank} de tus últimas ${s.of} semanas`;
+  return `${s.value} — ${position} (rango ${s.rangeMin}–${s.rangeMax})`;
+}
+
 export function buildBriefing({
   displayName,
   snapshot: s,
@@ -38,24 +65,31 @@ export function buildBriefing({
 }: BriefingInput): string {
   const lines: string[] = [];
 
+  const weekDelta =
+    s.weekLoadDeltaPct !== null ? ` (${formatDeltaPct(s.weekLoadDeltaPct)} vs semana previa)` : '';
   lines.push(
     `# Briefing de rendimiento — ${displayName} — ${s.today} (día ${s.historyDays} de registro)`,
     '',
     '## Estado actual (calculado determinísticamente por el motor)',
-    `- Carga hoy: ${s.todayLoad} AU · Carga últimos 7 días: ${s.weekLoad} AU`,
+    `- Carga hoy: ${s.todayLoad} AU · Carga últimos 7 días: ${s.weekLoad} AU${weekDelta}`,
   );
 
   if (s.acute7 !== null) lines.push(`- Carga aguda (EWMA 7d): ${s.acute7} AU`);
   if (s.chronic28 !== null) lines.push(`- Carga crónica (EWMA 28d): ${s.chronic28} AU`);
   if (s.acwr !== null) {
+    const yesterday = s.acwr.yesterday !== null ? ` (ayer: ${s.acwr.yesterday})` : '';
     lines.push(
-      `- ACWR: ${s.acwr.value} — banda ${BAND_ES[s.acwr.band]}${s.acwr.provisional ? ' (PROVISIONAL: historia corta)' : ''}`,
+      `- ACWR: ${s.acwr.value} — banda ${BAND_ES[s.acwr.band]}${yesterday}${s.acwr.provisional ? ' (PROVISIONAL: historia corta)' : ''}`,
     );
   } else {
     const u = s.unlocks.find((x) => x.key === 'acwr_provisional');
     lines.push(`- ACWR: bloqueado (faltan ${u?.remaining ?? '?'} días de registro)`);
   }
-  if (s.monotony !== null) lines.push(`- Monotonía: ${s.monotony} · Strain: ${s.strain ?? '—'}`);
+  if (s.monotony !== null && s.strain !== null) {
+    lines.push(
+      `- Monotonía: ${s.monotony.display} — banda ${MONOTONY_BAND_ES[s.monotony.band]} (valor exacto: ${s.monotony.value}) · Strain: ${strainPhraseEs(s.strain)}`,
+    );
+  }
 
   lines.push(metricLine('Readiness', s.readiness, '/5'), metricLine('Sueño', s.sleep, ' h'));
 
@@ -109,8 +143,8 @@ export function buildBriefing({
 function metricLine(label: string, state: EngineSnapshot['readiness'], unit: string): string {
   if (state === null) return `- ${label} hoy: sin check-in`;
   const z =
-    state.z !== null
-      ? ` (z=${state.z} vs tu baseline 28d)`
+    state.z !== null && state.tier !== null
+      ? ` (z=${state.z} vs tu baseline 28d — ${TIER_ES[state.tier]})`
       : state.baselineFormed
         ? ''
         : ' (baseline aún formándose)';
@@ -124,6 +158,6 @@ function flagEs(flag: EngineSnapshot['flags'][number]): string {
     case 'readiness_drop':
       return 'readiness bajo el baseline 2+ días seguidos';
     case 'monotony_high':
-      return `monotonía alta (${flag.value})`;
+      return `monotonía alta (valor exacto: ${flag.value})`;
   }
 }

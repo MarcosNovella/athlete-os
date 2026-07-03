@@ -88,6 +88,13 @@ export function weekLoadJumpBand(deltaPct: number): 'ok' | 'caution' {
   return deltaPct >= WEEK_LOAD_JUMP_CAUTION_PCT ? 'caution' : 'ok';
 }
 
+/** '▲ +33%' | '▼ 18%' | '= 0%' — one formatter so app and briefing match. */
+export function formatDeltaPct(deltaPct: number): string {
+  if (deltaPct > 0) return `▲ +${deltaPct}%`;
+  if (deltaPct < 0) return `▼ ${Math.abs(deltaPct)}%`;
+  return '= 0%';
+}
+
 /** Sample standard deviation (n-1); null for fewer than 2 points. */
 function sampleSd(values: readonly number[]): number | null {
   if (values.length < 2) return null;

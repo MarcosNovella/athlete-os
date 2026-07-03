@@ -8,7 +8,11 @@ import {
   sessionObservations,
 } from '../src/modules/fitness/capture/emission';
 import type { CheckInInput, SessionInput } from '../src/modules/fitness/capture/schemas';
-import { computeSnapshot, type ObservationLite } from '../src/modules/fitness/engine/snapshot';
+import {
+  computeSnapshot,
+  type ObservationLite,
+  signalSummary,
+} from '../src/modules/fitness/engine/snapshot';
 
 /**
  * Synthetic 28-day seed for a disposable DEMO subject (MVP validation).
@@ -191,14 +195,18 @@ function previewSnapshot(days: PlannedDay[], today: string): void {
   console.log(
     `  today=${snap.today} historyDays=${snap.historyDays} checkins=${snap.checkinCount}`,
   );
-  console.log(`  todayLoad=${snap.todayLoad} weekLoad=${snap.weekLoad}`);
+  console.log(
+    `  todayLoad=${snap.todayLoad} weekLoad=${snap.weekLoad} prevWeekLoad=${snap.prevWeekLoad} weekLoadDeltaPct=${snap.weekLoadDeltaPct}`,
+  );
   console.log(
     `  acute7=${snap.acute7} chronic28=${snap.chronic28} acwr=${JSON.stringify(snap.acwr)}`,
   );
-  console.log(`  monotony=${snap.monotony} strain=${snap.strain}`);
+  console.log(`  monotony=${JSON.stringify(snap.monotony)} strain=${JSON.stringify(snap.strain)}`);
   console.log(`  readiness=${JSON.stringify(snap.readiness)} sleep=${JSON.stringify(snap.sleep)}`);
   console.log(`  unlocked=[${openUnlocks.join(', ')}] locked=[${lockedUnlocks.join(', ')}]`);
-  console.log(`  flags=[${snap.flags.map((f) => f.kind).join(', ')}]`);
+  console.log(
+    `  flags=[${snap.flags.map((f) => f.kind).join(', ')}] signals=${JSON.stringify(signalSummary(snap.flags))}`,
+  );
 
   const wantFlags = ['acwr', 'readiness_drop', 'monotony_high'];
   const gotFlags = new Set<string>(snap.flags.map((f) => f.kind));

@@ -1,3 +1,4 @@
+import { monotonyDisplay } from '@/modules/fitness/engine/load';
 import type { EngineFlag, EngineSnapshot, MetricState } from '@/modules/fitness/engine/snapshot';
 import type { UnlockKey } from '@/modules/fitness/engine/unlock';
 
@@ -32,7 +33,7 @@ function flagText(flag: EngineFlag): string {
     case 'readiness_drop':
       return 'Readiness por debajo de tu base hace 2+ días — priorizá recuperación.';
     case 'monotony_high':
-      return `Semana muy monótona (${flag.value}) — variá las cargas.`;
+      return `Semana muy monótona (${monotonyDisplay(flag.value)}) — variá las cargas.`;
   }
 }
 
@@ -125,7 +126,7 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
         {snapshot.monotony !== null ? (
           <Stat
             label="Monotonía · Strain"
-            value={`${snapshot.monotony} · ${snapshot.strain ?? '—'}`}
+            value={`${snapshot.monotony.display} · ${snapshot.strain?.value ?? '—'}`}
           />
         ) : null}
       </div>

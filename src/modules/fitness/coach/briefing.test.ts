@@ -64,4 +64,32 @@ describe('buildBriefing', () => {
     expect(b).toContain('ACWR: bloqueado (faltan');
     expect(b).toContain('baseline');
   });
+
+  it('tells the interpreted story: bands, week delta, tier wording, yesterday ghost', () => {
+    const b = briefingFor(29);
+    expect(b).toMatch(/- Monotonía: .+ — banda /);
+    expect(b).toContain('vs semana previa');
+    expect(b).toContain('(ayer: ');
+    expect(b).toContain('tu media'); // z tier wording on readiness/sleep lines
+    expect(b).toMatch(/Strain: .+ semanas/); // personal rank framing
+  });
+
+  it('caps the monotony display but keeps the exact value for the LLM', () => {
+    const start = '2026-06-01';
+    const obs: ObservationLite[] = [];
+    for (let i = 0; i < 28; i++) {
+      const date = dateAt(start, i);
+      obs.push({ metric_key: 'readiness', value: 3 + (i % 3), effective_date: date });
+      obs.push({ metric_key: 'session_load', value: i === 25 ? 401 : 400, effective_date: date });
+    }
+    const today = dateAt(start, 27);
+    const b = buildBriefing({
+      displayName: 'Demo',
+      snapshot: computeSnapshot(obs, today),
+      trends: computeTrends(obs, today),
+      recentSessions: [],
+    });
+    expect(b).toContain('Monotonía: >5');
+    expect(b).toContain('valor exacto');
+  });
 });

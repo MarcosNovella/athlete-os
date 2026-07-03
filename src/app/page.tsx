@@ -33,13 +33,17 @@ export default async function TodayPage() {
     getEngineSnapshot(subject),
     supabase
       .from('daily_checkins')
-      .select('sleep_hours, sleep_quality, readiness, soreness, stress')
+      .select(
+        'sleep_hours, sleep_quality, readiness, soreness, stress, bodyweight_kg, nutrition_adherence, alcohol, caffeine',
+      )
       .eq('subject_id', subject.id)
       .eq('date', today)
       .maybeSingle(),
     supabase
       .from('daily_checkins')
-      .select('sleep_hours, sleep_quality, readiness, soreness, stress')
+      .select(
+        'sleep_hours, sleep_quality, readiness, soreness, stress, bodyweight_kg, nutrition_adherence, alcohol, caffeine',
+      )
       .eq('subject_id', subject.id)
       .eq('date', yesterday)
       .maybeSingle(),

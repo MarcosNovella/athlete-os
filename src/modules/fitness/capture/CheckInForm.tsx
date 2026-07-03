@@ -6,12 +6,16 @@ import type { ActionResult } from './actions';
 import { saveCheckIn } from './actions';
 import { enqueueCapture } from './offline';
 
-type CheckInValues = {
+export type CheckInValues = {
   sleep_hours: number;
   sleep_quality: number;
   readiness: number;
   soreness: number;
   stress: number;
+  bodyweight_kg: number | null;
+  nutrition_adherence: number | null;
+  alcohol: boolean;
+  caffeine: boolean;
 };
 
 type Props = {
@@ -85,6 +89,11 @@ function Fields({
     soreness: initial?.soreness ?? null,
     stress: initial?.stress ?? null,
   });
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [bodyweight, setBodyweight] = useState<number | null>(initial?.bodyweight_kg ?? null);
+  const [nutrition, setNutrition] = useState<number | null>(initial?.nutrition_adherence ?? null);
+  const [alcohol, setAlcohol] = useState(initial?.alcohol ?? false);
+  const [caffeine, setCaffeine] = useState(initial?.caffeine ?? false);
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<'idle' | 'saved' | 'queued' | 'error'>(
     initial ? 'saved' : 'idle',
@@ -104,6 +113,10 @@ function Fields({
         readiness: scales.readiness,
         soreness: scales.soreness,
         stress: scales.stress,
+        bodyweight_kg: bodyweight ?? undefined,
+        nutrition_adherence: nutrition ?? undefined,
+        alcohol,
+        caffeine,
       };
       let result: ActionResult;
       try {
@@ -166,6 +179,74 @@ function Fields({
         </div>
       ))}
 
+      <div>
+        <button
+          type="button"
+          onClick={() => setMoreOpen((o) => !o)}
+          className="w-full text-left text-sm text-dim underline-offset-2 hover:underline"
+        >
+          {moreOpen ? '− Menos datos' : '+ Más datos (opcional)'}
+        </button>
+        {moreOpen ? (
+          <div className="mt-3 space-y-4">
+            <div>
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="text-sm text-dim">Peso corporal</span>
+                <span className="font-display text-2xl font-semibold tabular-nums">
+                  {bodyweight !== null ? (
+                    <>
+                      {bodyweight.toFixed(1)}{' '}
+                      <span className="text-sm font-medium text-dim">kg</span>
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Stepper
+                  onClick={() =>
+                    setBodyweight((w) => Number(Math.max(30, (w ?? 80) - 0.1).toFixed(1)))
+                  }
+                  label="−0.1 kg"
+                />
+                <Stepper
+                  onClick={() =>
+                    setBodyweight((w) => Number(Math.min(250, (w ?? 79.9) + 0.1).toFixed(1)))
+                  }
+                  label="+0.1 kg"
+                />
+              </div>
+            </div>
+
+            <div>
+              <span className="mb-1 block text-sm text-dim">¿Comiste acorde?</span>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setNutrition((cur) => (cur === n ? null : n))}
+                    className={`min-h-12 rounded-lg border font-display text-xl font-semibold tabular-nums transition-colors ${
+                      nutrition === n
+                        ? 'border-flood bg-flood text-pitch'
+                        : 'border-line bg-turf-2 text-chalk active:bg-turf'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Toggle label="Alcohol" checked={alcohol} onChange={setAlcohol} />
+              <Toggle label="Cafeína" checked={caffeine} onChange={setCaffeine} />
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       {backfill ? (
         <p className="text-xs text-faint">
           Registrando <span className="font-medium text-dim">ayer</span> — se marca como backfill.
@@ -202,6 +283,30 @@ function Stepper({ onClick, label }: { onClick: () => void; label: string }) {
       type="button"
       onClick={onClick}
       className="min-h-12 flex-1 rounded-lg border border-line bg-turf-2 font-medium text-chalk active:bg-turf"
+    >
+      {label}
+    </button>
+  );
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`min-h-12 flex-1 rounded-lg border font-medium transition-colors ${
+        checked
+          ? 'border-flood bg-flood text-pitch'
+          : 'border-line bg-turf-2 text-chalk active:bg-turf'
+      }`}
     >
       {label}
     </button>

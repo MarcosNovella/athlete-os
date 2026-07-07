@@ -192,10 +192,10 @@ export function TodayStatePanel({ snapshot }: { snapshot: EngineSnapshot }) {
 
       {snapshot.acwr !== null ? (
         <div className="mt-2 rounded-lg bg-turf-2 p-3">
-          <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
+          <div className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
             <span>ACWR{snapshot.acwr.provisional ? ' · provisional' : ''}</span>
             <InfoTip term="acwr" />
-          </p>
+          </div>
           <p className="mt-0.5 flex items-center gap-2">
             <span className="font-display text-2xl font-semibold tabular-nums">
               {snapshot.acwr.value}
@@ -254,10 +254,10 @@ function Hero({
 }) {
   return (
     <div className="rounded-lg bg-turf-2 p-3">
-      <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
+      <div className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
         <span>{label}</span>
         {info}
-      </p>
+      </div>
       <p className="mt-0.5 font-display text-4xl font-semibold leading-none tabular-nums">
         {value}
         {unit ? <span className="ml-0.5 text-lg font-medium text-dim">{unit}</span> : null}
@@ -282,10 +282,10 @@ function Stat({
 }) {
   return (
     <div className="rounded-lg bg-turf-2 p-3">
-      <p className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
+      <div className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-faint">
         <span>{label}</span>
         {info}
-      </p>
+      </div>
       <p className="mt-0.5 font-display text-2xl font-semibold leading-none tabular-nums">
         {value}
         {unit ? <span className="ml-0.5 text-sm font-medium text-dim">{unit}</span> : null}

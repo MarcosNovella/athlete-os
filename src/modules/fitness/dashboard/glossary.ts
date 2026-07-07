@@ -18,7 +18,10 @@ export type GlossaryKey =
   | 'ritmo'
   | 'vfc'
   | 'fc_reposo'
-  | 'recovery';
+  | 'recovery'
+  | 'patron'
+  | 'efecto'
+  | 'n';
 
 export const GLOSSARY: Record<GlossaryKey, { term: string; definition: string }> = {
   acwr: {
@@ -90,5 +93,20 @@ export const GLOSSARY: Record<GlossaryKey, { term: string; definition: string }>
     term: 'Recovery',
     definition:
       'Puntaje de recuperación diario de Whoop (0-100), combina VFC, FC en reposo y sueño de la noche anterior. Es de Whoop únicamente — Apple Health no calcula un puntaje equivalente.',
+  },
+  patron: {
+    term: 'Patrón',
+    definition:
+      'Una asociación exploratoria entre dos de tus métricas (ej. sueño y readiness) detectada comparando tus propios días. Es una pista para investigar, no una causa comprobada.',
+  },
+  efecto: {
+    term: 'Efecto',
+    definition:
+      'Cuánto difiere el promedio de tus días "expuestos" (ej. con poco sueño) del resto, en Cohen\'s d — una medida del tamaño del cambio relativa a tu propia variabilidad, no una unidad universal.',
+  },
+  n: {
+    term: 'n',
+    definition:
+      'Cuántos días de cada grupo (expuesto vs. el resto) entraron en la comparación. Con pocos días, un patrón puede ser ruido — por eso cada candidato muestra ambos números.',
   },
 };

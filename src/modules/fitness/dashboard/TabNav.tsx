@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-type Tab = 'today' | 'trends' | 'coach' | 'sources';
+type Tab = 'today' | 'trends' | 'patterns' | 'coach' | 'sources';
 
 export function TabNav({ active }: { active: Tab }) {
   const tab = (href: string, key: Tab, label: string) => (
@@ -19,6 +19,7 @@ export function TabNav({ active }: { active: Tab }) {
     <nav className="flex gap-1 rounded-xl border border-line bg-turf p-1">
       {tab('/', 'today', 'Hoy')}
       {tab('/trends', 'trends', 'Tendencias')}
+      {tab('/patrones', 'patterns', 'Patrones')}
       {tab('/coach', 'coach', 'Coach')}
       {tab('/fuentes', 'sources', 'Fuentes')}
     </nav>

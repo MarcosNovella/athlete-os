@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { addDaysIso, localDateInTz } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
+import { computePatternCandidates, type PatternsData } from './patterns';
 import { computeSnapshot, type EngineSnapshot, type ObservationLite } from './snapshot';
 import { computeTrends, type TrendsData } from './trends';
 
@@ -103,4 +104,9 @@ export async function getEngineSnapshot(subject: EngineSubject): Promise<EngineS
 export async function getTrends(subject: EngineSubject): Promise<TrendsData> {
   const { obs, today } = await fetchEngineObservations(subject.id, subject.timezone);
   return computeTrends(obs, today);
+}
+
+export async function getPatternCandidates(subject: EngineSubject): Promise<PatternsData> {
+  const { obs, today } = await fetchEngineObservations(subject.id, subject.timezone);
+  return computePatternCandidates(obs, today);
 }

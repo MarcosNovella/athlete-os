@@ -27,4 +27,14 @@ describe('unlockStates', () => {
     expect(isUnlocked(unlockStates(30, 3), 'baselines')).toBe(false);
     expect(isUnlocked(unlockStates(10, 7), 'baselines')).toBe(true);
   });
+
+  it('gates patterns (V2.3) at 56 calendar days, locked at 55 with remaining 1', () => {
+    const locked = unlockStates(55, 40);
+    expect(isUnlocked(locked, 'patterns')).toBe(false);
+    expect(locked.find((s) => s.key === 'patterns')?.remaining).toBe(1);
+
+    const unlocked = unlockStates(56, 40);
+    expect(isUnlocked(unlocked, 'patterns')).toBe(true);
+    expect(unlocked.find((s) => s.key === 'patterns')?.remaining).toBe(0);
+  });
 });

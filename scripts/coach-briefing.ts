@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { localDateInTz } from '../src/lib/dates';
 import { buildBriefing, type RecentSession } from '../src/modules/fitness/coach/briefing';
+import { computePatternCandidates } from '../src/modules/fitness/engine/patterns';
 import { computeSnapshot, type ObservationLite } from '../src/modules/fitness/engine/snapshot';
 import { computeTrends } from '../src/modules/fitness/engine/trends';
 
@@ -40,12 +41,14 @@ if (!raw.subject?.timezone || !Array.isArray(raw.observations) || !Array.isArray
 const today = localDateInTz(raw.subject.timezone);
 const snapshot = computeSnapshot(raw.observations, today);
 const trends = computeTrends(raw.observations, today);
+const patterns = computePatternCandidates(raw.observations, today);
 
 console.log(
   buildBriefing({
     displayName: raw.subject.display_name,
     snapshot,
     trends,
+    patterns,
     recentSessions: raw.sessions,
   }),
 );

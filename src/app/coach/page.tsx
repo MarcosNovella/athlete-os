@@ -7,7 +7,11 @@ import { buildBriefing } from '@/modules/fitness/coach/briefing';
 import { CopyButton } from '@/modules/fitness/coach/CopyButton';
 import { SignalsCue } from '@/modules/fitness/dashboard/SignalsCue';
 import { TabNav } from '@/modules/fitness/dashboard/TabNav';
-import { getEngineSnapshot, getTrends } from '@/modules/fitness/engine/service';
+import {
+  getEngineSnapshot,
+  getPatternCandidates,
+  getTrends,
+} from '@/modules/fitness/engine/service';
 import { signalSummary } from '@/modules/fitness/engine/snapshot';
 
 const KIND_LABEL: Record<string, string> = {
@@ -37,9 +41,10 @@ export default async function CoachPage() {
   const today = localDateInTz(subject.timezone);
   const supabase = await createClient();
 
-  const [snapshot, trends, sessions, insights] = await Promise.all([
+  const [snapshot, trends, patterns, sessions, insights] = await Promise.all([
     getEngineSnapshot(subject),
     getTrends(subject),
+    getPatternCandidates(subject),
     supabase
       .from('training_sessions')
       .select('date, modality, duration_min, srpe, load, notes')
@@ -63,6 +68,7 @@ export default async function CoachPage() {
     displayName: subject.display_name,
     snapshot,
     trends,
+    patterns,
     recentSessions: sessions,
   });
 

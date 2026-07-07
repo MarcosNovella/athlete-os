@@ -70,6 +70,12 @@ write them into the `insights` table so they render in the app's Coach tab.
    each with cited evidence from the briefing and a confidence (low/medium/high).
    During the cold-start window, respect what is locked: no ACWR talk before it
    unlocks — use what exists (loads, raw readiness/sleep, streak).
+   V2.3 (ADR-025): the briefing's "Candidatos de patrón" section is exploratory,
+   never causal. You MAY promote a surfaced candidate into a `hypothesis` insight,
+   but only by citing its exact effect (Cohen's d) and n (both/either group) as
+   printed in the briefing — put them in the insight's `evidence` jsonb (e.g.
+   `{"pattern": "sleep_duration_low_readiness", "effect_d": -1.28, "n": [37, 40]}`)
+   and phrase the statement as an association to keep investigating, not a cause.
 
 5. **Write back** (one insert per item; `execute_sql`):
 

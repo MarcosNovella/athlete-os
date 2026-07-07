@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { computePatternCandidates } from '@/modules/fitness/engine/patterns';
 import { computeSnapshot, type ObservationLite } from '@/modules/fitness/engine/snapshot';
 import { computeTrends } from '@/modules/fitness/engine/trends';
 import { buildBriefing } from './briefing';
@@ -27,6 +28,7 @@ function briefingFor(days: number): string {
     displayName: 'Marcos',
     snapshot: computeSnapshot(obs, today),
     trends: computeTrends(obs, today),
+    patterns: computePatternCandidates(obs, today),
     recentSessions: [
       {
         date: today,
@@ -105,6 +107,7 @@ describe('buildBriefing', () => {
       displayName: 'Marcos',
       snapshot: computeSnapshot(obs, today),
       trends: computeTrends(obs, today),
+      patterns: computePatternCandidates(obs, today),
       recentSessions: [],
     });
     expect(b).toContain('Peso corporal: 81.8 kg');
@@ -142,6 +145,7 @@ describe('buildBriefing', () => {
       displayName: 'Marcos',
       snapshot: computeSnapshot(obs, today),
       trends: computeTrends(obs, today),
+      patterns: computePatternCandidates(obs, today),
       recentSessions: [],
     });
     expect(b).toContain('Recovery (Whoop): 98% (2026-06-29)');
@@ -162,9 +166,80 @@ describe('buildBriefing', () => {
       displayName: 'Demo',
       snapshot: computeSnapshot(obs, today),
       trends: computeTrends(obs, today),
+      patterns: computePatternCandidates(obs, today),
       recentSessions: [],
     });
     expect(b).toContain('Monotonía: >5');
     expect(b).toContain('valor exacto');
+  });
+
+  it('shows the patterns section as locked before the 56d unlock', () => {
+    const b = briefingFor(29);
+    expect(b).toContain('## Candidatos de patrón (exploratorios — computados por el motor)');
+    expect(b).toContain('- Bloqueado (faltan');
+  });
+
+  it('shows the empty-pairs line once unlocked with no candidates', () => {
+    const start = '2026-01-01';
+    const days = 56;
+    const obs: ObservationLite[] = [];
+    for (let i = 0; i < days; i++) {
+      // Flat, noise-free series: nothing should ever surface as a candidate.
+      obs.push({ metric_key: 'readiness', value: 3, effective_date: dateAt(start, i) });
+      obs.push({ metric_key: 'sleep_duration', value: 7.5, effective_date: dateAt(start, i) });
+    }
+    const today = dateAt(start, days - 1);
+    const b = buildBriefing({
+      displayName: 'Marcos',
+      snapshot: computeSnapshot(obs, today),
+      trends: computeTrends(obs, today),
+      patterns: computePatternCandidates(obs, today),
+      recentSessions: [],
+    });
+    expect(b).toContain('Sin patrones claros todavía');
+    expect(b).toMatch(/\d+ pares vigilados/);
+  });
+
+  it('renders a candidate line identical to formatCandidateEs, plus the standing caveat', () => {
+    // Reuse the same planted low-sleep/readiness shape as patterns.test.ts's
+    // planted-association fixture, over 84 days (well past the 56d unlock).
+    const start = '2026-01-01';
+    const days = 84;
+    const obs: ObservationLite[] = [];
+    for (let i = 0; i < days; i++) {
+      const date = dateAt(start, i);
+      const low = i % 2 === 0;
+      const wobble = i % 4 === 0 ? 0.2 : -0.2;
+      obs.push({
+        metric_key: 'sleep_duration',
+        value: (low ? 6.0 : 8.0) + wobble,
+        effective_date: date,
+      });
+      obs.push({
+        metric_key: 'readiness',
+        value: (low ? 2.0 : 4.0) + wobble,
+        effective_date: date,
+      });
+    }
+    const today = dateAt(start, days - 1);
+    const patterns = computePatternCandidates(obs, today);
+    const surfaced = patterns.surfaced.find((c) => c.pair.id === 'sleep_duration_low_readiness');
+    expect(surfaced).toBeDefined();
+
+    const b = buildBriefing({
+      displayName: 'Marcos',
+      snapshot: computeSnapshot(obs, today),
+      trends: computeTrends(obs, today),
+      patterns,
+      recentSessions: [],
+    });
+    expect(b).toContain(`- ${surfaced?.statement}`);
+    expect(b).toContain('Asociación exploratoria, no implica causa');
+  });
+
+  it('instructs the LLM to cite exact effect+n and never treat a candidate as cause', () => {
+    const b = briefingFor(29);
+    expect(b).toMatch(/Candidatos de patrón son asociaciones exploratorias, no causas/);
+    expect(b).toContain('citá su efecto y n exactos');
   });
 });

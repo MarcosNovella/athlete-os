@@ -1,5 +1,6 @@
 import { formatPace } from '@/modules/fitness/capture/emission';
 import { formatDeltaPct } from '@/modules/fitness/engine/load';
+import { PATTERN_CAVEAT, type PatternsData } from '@/modules/fitness/engine/patterns';
 import type { EngineSnapshot, StrainState } from '@/modules/fitness/engine/snapshot';
 import type { OutcomeSeries, TrendsData } from '@/modules/fitness/engine/trends';
 
@@ -23,6 +24,7 @@ export type BriefingInput = {
   snapshot: EngineSnapshot;
   trends: TrendsData;
   recentSessions: ReadonlyArray<RecentSession>;
+  patterns: PatternsData;
 };
 
 const BAND_ES: Record<string, string> = {
@@ -70,6 +72,7 @@ export function buildBriefing({
   snapshot: s,
   trends: t,
   recentSessions,
+  patterns,
 }: BriefingInput): string {
   const lines: string[] = [];
 
@@ -136,6 +139,12 @@ export function buildBriefing({
 
   lines.push(
     '',
+    '## Candidatos de patrón (exploratorios — computados por el motor)',
+    ...patternsLines(patterns),
+  );
+
+  lines.push(
+    '',
     '## Completitud de datos',
     `- Check-ins registrados: ${s.checkinCount} en ${s.historyDays} días de historia. Los huecos son datos FALTANTES: no se imputan.`,
     `- Media personal (28d): sueño ${t.sleepMean ?? 'aún sin baseline'} · readiness ${t.readinessMean ?? 'aún sin baseline'}.`,
@@ -148,6 +157,7 @@ export function buildBriefing({
     '4. Nada de consejo médico: si algo parece clínico (dolor persistente, síntomas), señalalo y recomendá consultar a un profesional.',
     '5. El objetivo es performance-first DENTRO de límites seguros: nunca recomiendes saltos de carga hacia la banda de riesgo.',
     '6. Respondé en español, conciso y accionable.',
+    '7. Los Candidatos de patrón son asociaciones exploratorias, no causas — si promovés uno a HIPÓTESIS, citá su efecto y n exactos tal como aparecen arriba, nunca lo presentes como causa.',
     '',
     'Pedidos: (a) lectura del estado actual; (b) qué modificar la próxima semana, concreto; (c) 1-2 HIPÓTESIS marcadas si los datos lo sugieren.',
   );
@@ -242,6 +252,19 @@ function recoveryLines(t: TrendsData): string[] {
 
   if (lines.length === 0) lines.push('- Sin datos de dispositivo todavía.');
   return lines;
+}
+
+/** V2.3 (ADR-025): same statement builder as /patrones (formatCandidateEs) — same-story invariant. */
+function patternsLines(patterns: PatternsData): string[] {
+  if (patterns.locked) {
+    return [`- Bloqueado (faltan ${patterns.remainingDays} días de historia para evaluar).`];
+  }
+  if (patterns.surfaced.length === 0) {
+    return [
+      `- Sin patrones claros todavía — ${patterns.evaluatedCount} pares vigilados, seguí registrando.`,
+    ];
+  }
+  return [...patterns.surfaced.map((c) => `- ${c.statement}`), `- ${PATTERN_CAVEAT}`];
 }
 
 function deltaSuffix(series: OutcomeSeries, unit: string): string {

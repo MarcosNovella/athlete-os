@@ -52,6 +52,99 @@ describe('parseHaeExport', () => {
     expect(result.observations).toEqual([{ metric_key: 'sleep_device', value: 6.5, date: TODAY }]);
   });
 
+  it('prefers "totalSleep" over a literal "asleep: 0" (real Watch S10 stage-based export shape)', () => {
+    const raw = {
+      data: {
+        metrics: [
+          {
+            name: 'sleep_analysis',
+            data: [
+              {
+                date: `${TODAY} 07:00:00 -0300`,
+                asleep: 0,
+                totalSleep: 7.42,
+                core: 4.1,
+                deep: 1.2,
+                rem: 2.0,
+                awake: 0.3,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHaeExport(raw);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('expected ok');
+    expect(result.observations).toEqual([{ metric_key: 'sleep_device', value: 7.42, date: TODAY }]);
+  });
+
+  it('falls back to the core+deep+rem stage sum when totalSleep/asleep are absent', () => {
+    const raw = {
+      data: {
+        metrics: [
+          {
+            name: 'sleep_analysis',
+            data: [
+              { date: `${TODAY} 07:00:00 -0300`, core: 4.0, deep: 1.5, rem: 1.75, awake: 0.4 },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHaeExport(raw);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('expected ok');
+    expect(result.observations).toEqual([{ metric_key: 'sleep_device', value: 7.25, date: TODAY }]);
+  });
+
+  it('skips an all-zero sleep row instead of recording 0h (device noise, never signal)', () => {
+    const raw = {
+      data: {
+        metrics: [
+          {
+            name: 'sleep_analysis',
+            data: [
+              {
+                date: `${TODAY} 07:00:00 -0300`,
+                asleep: 0,
+                totalSleep: 0,
+                core: 0,
+                deep: 0,
+                rem: 0,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHaeExport(raw);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('expected ok');
+    expect(result.skippedCount).toBe(1);
+    expect(result.observations).toEqual([]);
+  });
+
+  it('sums (not averages) multiple same-day sleep segments — nap + main sleep', () => {
+    const raw = {
+      data: {
+        metrics: [
+          {
+            name: 'sleep_analysis',
+            data: [
+              { date: `${TODAY} 14:00:00 -0300`, totalSleep: 3.5 }, // nap
+              { date: `${TODAY} 23:30:00 -0300`, totalSleep: 3.5 }, // main sleep
+            ],
+          },
+        ],
+      },
+    };
+    const result = parseHaeExport(raw);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('expected ok');
+    expect(result.observations).toEqual([{ metric_key: 'sleep_device', value: 7, date: TODAY }]);
+  });
+
   it('ignores unknown metrics', () => {
     const raw = {
       data: {

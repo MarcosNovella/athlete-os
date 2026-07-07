@@ -39,16 +39,42 @@ function numericField(point: Record<string, unknown>, keys: string[]): number | 
   return null;
 }
 
+function positiveNumericField(point: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    const v = point[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+  }
+  return null;
+}
+
+/**
+ * Real Watch S10 stage-based exports carry `asleep: 0` (literal) on every
+ * entry alongside `totalSleep` (the authoritative total) plus a
+ * core/deep/rem/awake breakdown. A 0h reading is device noise, never signal
+ * (M0): prefer `totalSleep`, fall back to summing the stage breakdown, and
+ * skip the row entirely if neither yields a positive duration.
+ */
+function sleepHours(point: Record<string, unknown>): number | null {
+  const direct = positiveNumericField(point, ['totalSleep', 'asleep']);
+  if (direct !== null) return direct;
+  const stageSum = ['core', 'deep', 'rem'].reduce((sum, key) => {
+    const v = point[key];
+    return sum + (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  }, 0);
+  return stageSum > 0 ? stageSum : null;
+}
+
 export type ParseHaeResult =
   | { ok: true; observations: DeviceObservation[]; skippedCount: number }
   | { ok: false; error: string };
 
 /**
  * Parses a HAE export into DeviceObservations. Multiple same-day readings
- * for a metric are averaged (device exports often carry several samples per
- * day) — the import RPC dedupe key is (subject, metric, date, 'import'), so
- * a batch can only carry ONE row per (metric, date) or the single INSERT
- * would try to affect the same conflict target twice.
+ * for a metric are collapsed to one row per (metric, date) — the import RPC
+ * dedupe key is (subject, metric, date, 'import'), so a batch can only carry
+ * ONE row per (metric, date) or the single INSERT would try to affect the
+ * same conflict target twice. hrv/resting_hr point samples are averaged;
+ * sleep segments (main sleep + naps) are SUMMED into the night's total.
  */
 export function parseHaeExport(raw: unknown): ParseHaeResult {
   const parsed = haeExport.safeParse(raw);
@@ -96,10 +122,7 @@ export function parseHaeExport(raw: unknown): ParseHaeResult {
         continue;
       }
 
-      const value =
-        metricKey === 'sleep_device'
-          ? numericField(point, ['asleep', 'totalSleep'])
-          : numericField(point, ['qty']);
+      const value = metricKey === 'sleep_device' ? sleepHours(point) : numericField(point, ['qty']);
       if (value === null) {
         skippedCount++;
         continue;
@@ -122,8 +145,11 @@ export function parseHaeExport(raw: unknown): ParseHaeResult {
   const observations: DeviceObservation[] = [];
   for (const [metricKey, byDate] of byMetricDate) {
     for (const [date, values] of byDate) {
-      const mean = values.reduce((a, b) => a + b, 0) / values.length;
-      observations.push({ metric_key: metricKey, value: Math.round(mean * 100) / 100, date });
+      // Sleep segments on the same day (naps + main sleep) must SUM to the
+      // night's total; hrv/resting_hr are point samples and stay averaged.
+      const total = values.reduce((a, b) => a + b, 0);
+      const value = metricKey === 'sleep_device' ? total : total / values.length;
+      observations.push({ metric_key: metricKey, value: Math.round(value * 100) / 100, date });
     }
   }
 

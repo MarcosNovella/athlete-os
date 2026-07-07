@@ -8,6 +8,7 @@ import {
   sessionObservations,
 } from '../src/modules/fitness/capture/emission';
 import type { CheckInInput, Lift, SessionInput } from '../src/modules/fitness/capture/schemas';
+import { computePatternCandidates, PATTERN_TOP_K } from '../src/modules/fitness/engine/patterns';
 import {
   computeSnapshot,
   type ObservationLite,
@@ -18,17 +19,28 @@ import { toImportRows } from '../src/modules/fitness/integrations/import';
 import type { DeviceObservation } from '../src/modules/fitness/integrations/types';
 
 /**
- * Synthetic 28-day seed for a disposable DEMO subject (MVP validation).
+ * Synthetic 84-day seed for a disposable DEMO subject (MVP validation +
+ * V2.3 pattern candidates, ADR-025).
  *
  * Reuses the REAL write path: the pure emission layer (checkInObservations /
  * sessionObservations) + the atomic save_* RPCs, authenticated with the anon
  * key (RLS applies as the demo user — no service-role key, Harness R3/G-000).
  *
- * The narrative is designed so TODAY's engine snapshot fires all three flags
- * (acwr, readiness_drop, monotony_high) with every unlock open:
- *   days 1–21  healthy baseline (varied moderate load, good sleep/readiness)
- *   days 22–28 overreaching block (sustained high monotonous load; sleep and
- *              readiness crash, readiness hits 2 on the last two days)
+ * The narrative has three blocks so TODAY's engine snapshot still fires all
+ * three V2.0 flags (acwr, readiness_drop, monotony_high) with every unlock
+ * open, while the first 77 days carry planted pattern-candidate associations:
+ *   days 1–21  original healthy baseline (varied moderate load, good
+ *              sleep/readiness) — UNCHANGED from the pre-V2.3 seed.
+ *   days 22–77 planted era (V2.3): mostly baseline-shaped, with ~12 LOW_SLEEP
+ *              days (sleep 5.75–6.0h, readiness 2–3 vs the ~7.25–8.25h/4–5
+ *              norm) and ~10 ALCOHOL days (sleep −1.0h, readiness −1 vs that
+ *              day's own baseline) planted so sleep_duration_low_readiness
+ *              and alcohol_* surface as candidates; caffeine stays an
+ *              uncorrelated 50/50 toggle (negative control — must NOT fire).
+ *   days 78–84 overreaching block, VERBATIM (same generator, same relative
+ *              day math) as the original 28-day seed's days 22–28: sustained
+ *              high monotonous load; sleep and readiness crash, readiness
+ *              hits 2 on the last two days.
  *
  * Usage:
  *   pnpm seed -- --dry-run   generate + preview the snapshot (no DB, no auth)
@@ -145,21 +157,21 @@ type SessionOutcomeExtra = Partial<
 // batches (whoop/api, apple_health/file) — exercises both provenance shapes,
 // no key collision (D3: hrv split, resting_hr shared, sleep_device own key).
 
-/** i (0-indexed day) → Whoop recovery score. d1-21: 65-85 oscillation; d22-28: 55→38. */
+/** i (0-indexed day, GLOBAL over the full 84d) → Whoop recovery score. d1-77: 65-85 oscillation; d78-84: 55→38. */
 function recoveryScoreFor(i: number): number {
-  if (i < 21) return 65 + (i % 5) * 5; // 65/70/75/80/85 repeating
-  const step = i - 21; // 0..6
+  if (i < 77) return 65 + (i % 5) * 5; // 65/70/75/80/85 repeating
+  const step = i - 77; // 0..6
   return Math.round(55 - ((55 - 38) / 6) * step);
 }
 
-/** i → Whoop HRV RMSSD (ms). d1-21: ~75±8; d22-28: ramps down ~15%. */
+/** i (GLOBAL) → Whoop HRV RMSSD (ms). d1-77: ~75±8; d78-84: ramps down ~15%. */
 function hrvRmssdFor(i: number): number {
   const base = 75;
-  if (i < 21) {
+  if (i < 77) {
     const wobble = i % 3 === 0 ? 8 : i % 3 === 1 ? -8 : 0;
     return round1(base + wobble);
   }
-  const step = i - 21; // 0..6
+  const step = i - 77; // 0..6
   return round1(base * (1 - 0.15 * (step / 6)));
 }
 
@@ -168,10 +180,10 @@ function hrvSdnnFor(i: number): number {
   return round1(hrvRmssdFor(i) * 1.7);
 }
 
-/** i → resting heart rate (bpm), shared key. d1-21: ~52; d22-28: +5 bpm. */
+/** i (GLOBAL) → resting heart rate (bpm), shared key. d1-77: ~52; d78-84: +5 bpm. */
 function restingHrFor(i: number): number {
-  if (i < 21) return 52;
-  const step = i - 21; // 0..6
+  if (i < 77) return 52;
+  const step = i - 77; // 0..6
   return Math.round(52 + 5 * (step / 6));
 }
 
@@ -246,18 +258,32 @@ async function writeDeviceBatches(
 
 // --- narrative generation ----------------------------------------------------
 
+const TOTAL_DAYS = 84;
+const PLANTED_ERA_START = 21; // i=0..20 stay the original untouched baseline
+const OVERREACH_START = 77; // i=77..83 = verbatim reuse of the old i=21..27 tail
+
 function generateDays(subjectId: string, today: string): PlannedDay[] {
   const days: PlannedDay[] = [];
 
-  for (let i = 0; i < 28; i++) {
-    const date = addDaysIso(today, -(27 - i));
-    const dayNum = i + 1; // 1..28
-    const overreaching = dayNum >= 22;
+  for (let i = 0; i < TOTAL_DAYS; i++) {
+    const date = addDaysIso(today, -(TOTAL_DAYS - 1 - i));
 
-    const checkin = overreaching ? overreachingCheckin(date, dayNum) : baselineCheckin(date, i);
-    const sessions = overreaching
-      ? overreachingSessions(subjectId, date, i)
-      : baselineSessions(subjectId, date, i);
+    let checkin: CheckInInput;
+    let sessions: PlannedSession[];
+    if (i < PLANTED_ERA_START) {
+      checkin = baselineCheckin(date, i);
+      sessions = baselineSessions(subjectId, date, i);
+    } else if (i < OVERREACH_START) {
+      checkin = plantedEraCheckin(date, i);
+      sessions = plantedEraSessions(subjectId, date, i);
+    } else {
+      // VERBATIM reuse of the original 28-day seed's overreach block: map the
+      // new global day back onto the old local i=21..27 / dayNum=22..28 that
+      // the untouched generators expect, so their output is byte-identical.
+      const localI = i - OVERREACH_START + 21; // 21..27
+      checkin = overreachingCheckin(date, localI + 1);
+      sessions = overreachingSessions(subjectId, date, localI);
+    }
 
     days.push({ date, checkin, sessions });
   }
@@ -308,7 +334,73 @@ function baselineSessions(subjectId: string, date: string, i: number): PlannedSe
   return [buildSession(subjectId, date, 0, modality, durationMin, srpe, extra)];
 }
 
-/** Days 22–28: poor sleep, readiness stepping down to 2 on the last two days. */
+// --- V2.3 planted era (i=21..76): pattern-candidate associations (ADR-025) ---
+// Sleep_duration_low_readiness and alcohol_* need a real effect to surface as
+// candidates; caffeine is a deliberate negative control (uncoupled 50/50).
+
+/** i → {sleep, readiness} override for a deliberately bad-sleep night (~every 5th day). */
+const LOW_SLEEP_SPECS: ReadonlyMap<number, { sleep: number; readiness: number }> = new Map([
+  [22, { sleep: 5.75, readiness: 2 }],
+  [27, { sleep: 6.0, readiness: 3 }],
+  [32, { sleep: 5.75, readiness: 2 }],
+  [37, { sleep: 6.0, readiness: 3 }],
+  [42, { sleep: 5.75, readiness: 2 }],
+  [47, { sleep: 6.0, readiness: 3 }],
+  [52, { sleep: 5.75, readiness: 2 }],
+  [57, { sleep: 6.0, readiness: 3 }],
+  [62, { sleep: 5.75, readiness: 2 }],
+  [67, { sleep: 6.0, readiness: 3 }],
+  [72, { sleep: 5.75, readiness: 2 }],
+  [76, { sleep: 6.0, readiness: 3 }],
+]);
+
+/** Disjoint from LOW_SLEEP_SPECS; parity-balanced against the i%2 caffeine toggle so alcohol doesn't leak into the caffeine negative control. */
+const ALCOHOL_DAYS_NEW = new Set([24, 29, 34, 39, 44, 49, 54, 59, 64, 69]);
+
+/** i=21..76: mostly baseline-shaped, with the LOW_SLEEP/ALCOHOL plants above. */
+function plantedEraCheckin(date: string, i: number): CheckInInput {
+  const baseSleep = 7.25 + (i % 3) * 0.5; // 7.25 / 7.75 / 8.25
+  const baseReadiness = i % 5 === 0 ? 5 : i % 7 === 0 ? 3 : 4;
+
+  let sleepHours = baseSleep;
+  let readiness = baseReadiness;
+  let alcohol = false;
+
+  const lowSleep = LOW_SLEEP_SPECS.get(i);
+  if (lowSleep !== undefined) {
+    sleepHours = lowSleep.sleep;
+    readiness = lowSleep.readiness;
+  } else if (ALCOHOL_DAYS_NEW.has(i)) {
+    alcohol = true;
+    sleepHours = baseSleep - 1.0;
+    readiness = Math.max(1, baseReadiness - 1);
+  }
+
+  return {
+    date,
+    sleep_hours: quarter(sleepHours),
+    sleep_quality: readiness >= 4 ? 4 : 2,
+    readiness,
+    soreness: 1 + (i % 2), // 1 or 2
+    stress: i % 3 === 0 ? 2 : 1,
+    nutrition_adherence: i % 2 === 0 ? 5 : 4,
+    alcohol,
+    // Uncoupled 50/50 toggle, independent of the sleep/alcohol plants above —
+    // the negative control that must NOT surface caffeine_* as a candidate.
+    caffeine: i % 2 === 0,
+  };
+}
+
+/** i=21..76: same rest-day/moderate-session shape as the baseline, no named-lift/match/pace tagging (not needed for the planted associations). */
+function plantedEraSessions(subjectId: string, date: string, i: number): PlannedSession[] {
+  if (i % 4 === 3) return []; // rest day (real 0 load)
+  const srpe = 4 + (i % 3); // 4..6
+  const durationMin = 50 + (i % 4) * 10; // 50..80
+  const modality = MODALITIES[i % 3] ?? 'gym';
+  return [buildSession(subjectId, date, 0, modality, durationMin, srpe)];
+}
+
+/** Days 22–28 (original 28-day numbering): poor sleep, readiness stepping down to 2 on the last two days. */
 function overreachingCheckin(date: string, dayNum: number): CheckInInput {
   let readiness = 4;
   if (dayNum >= 27) readiness = 2;
@@ -492,6 +584,82 @@ function previewRecoveryTrends(days: PlannedDay[], today: string): void {
   );
 }
 
+/**
+ * V2.3 (ADR-025): runs the REAL computePatternCandidates over the full
+ * narrative and mechanically asserts the planted associations fire with the
+ * right sign, the caffeine negative control stays silent, and the surfaced
+ * set is a valid ≤top-K subset of the candidates. Sets `process.exitCode = 1`
+ * on failure — run to green BEFORE any real seed (per the plan).
+ */
+function previewPatterns(days: PlannedDay[], today: string): void {
+  const { whoop, apple } = buildDeviceObservations(days);
+  const deviceObs: ObservationLite[] = [...whoop, ...apple].map((o) => ({
+    metric_key: o.metric_key,
+    value: o.value,
+    effective_date: o.date,
+  }));
+  const data = computePatternCandidates([...allObservations(days), ...deviceObs], today);
+
+  console.log('— Pattern candidates preview (computed by the real patterns engine) —');
+  console.log(
+    `  historyDays=${data.historyDays} locked=${data.locked} remainingDays=${data.remainingDays} evaluated=${data.evaluatedCount}`,
+  );
+  for (const r of data.results) {
+    console.log(
+      `  ${r.pairId}: ${r.status} diff=${r.diff} d=${r.cohensD} rho=${r.rho} n=${r.nExposed}/${r.nReference}`,
+    );
+  }
+  console.log(
+    `  surfaced (top ${PATTERN_TOP_K}): ${data.surfaced.map((c) => c.pair.id).join(', ') || '(none)'}`,
+  );
+
+  let ok = true;
+  const expectCandidate = (id: string, expectedSign: 1 | -1): void => {
+    const r = data.results.find((x) => x.pairId === id);
+    if (r?.status !== 'candidate' || r.diff === null || Math.sign(r.diff) !== expectedSign) {
+      console.error(`  ✗ expected ${id} to be a candidate with sign ${expectedSign}, got`, r);
+      ok = false;
+    } else {
+      console.log(`  ✓ ${id} candidate as expected (diff=${r.diff})`);
+    }
+  };
+  const expectSilent = (id: string): void => {
+    const r = data.results.find((x) => x.pairId === id);
+    if (r?.status === 'candidate') {
+      console.error(`  ✗ negative control ${id} unexpectedly fired as a candidate:`, r);
+      ok = false;
+    } else {
+      console.log(`  ✓ ${id} stayed silent (${r?.status})`);
+    }
+  };
+
+  expectCandidate('sleep_duration_low_readiness', -1); // low sleep -> lower readiness
+  expectCandidate('alcohol_readiness', -1); // alcohol -> lower readiness
+  expectCandidate('alcohol_sleep_duration', -1); // alcohol -> less sleep
+  expectSilent('caffeine_readiness');
+  expectSilent('caffeine_sleep_duration');
+
+  const candidateIds = new Set(
+    data.results.filter((r) => r.status === 'candidate').map((r) => r.pairId),
+  );
+  const surfacedValid =
+    data.surfaced.length <= PATTERN_TOP_K &&
+    data.surfaced.every((c) => candidateIds.has(c.pair.id));
+  if (!surfacedValid) {
+    console.error('  ✗ surfaced set is not a valid ≤top-K subset of candidates');
+    ok = false;
+  } else {
+    console.log(`  ✓ surfaced (${data.surfaced.length}) ⊆ candidates, ≤ top ${PATTERN_TOP_K}`);
+  }
+
+  if (ok) {
+    console.log('  ✓ all pattern-candidate assertions passed');
+  } else {
+    console.error('Pattern candidates preview FAILED assertions.');
+    process.exitCode = 1;
+  }
+}
+
 // --- DB write path (auth + RPC) ----------------------------------------------
 
 function requireEnv(name: string): string {
@@ -579,7 +747,7 @@ async function writeDays(
       }
       sessions++;
     }
-    process.stdout.write(`\r  wrote ${checkins}/28 days, ${sessions} sessions`);
+    process.stdout.write(`\r  wrote ${checkins}/${TOTAL_DAYS} days, ${sessions} sessions`);
   }
   process.stdout.write('\n');
 }
@@ -620,11 +788,12 @@ async function main(): Promise<void> {
     // subject id is irrelevant for the engine preview; a fixed placeholder keeps
     // session ids deterministic and matches what a real run would generate.
     const days = generateDays('dry-run-subject', today);
-    console.log(`Generated 28 days ending ${today} (dry run — no DB writes).`);
+    console.log(`Generated ${TOTAL_DAYS} days ending ${today} (dry run — no DB writes).`);
     previewSnapshot(days, today);
     previewOutcomes(days, today);
     previewDevices(days);
     previewRecoveryTrends(days, today);
+    previewPatterns(days, today);
     return;
   }
 
@@ -634,13 +803,18 @@ async function main(): Promise<void> {
   const supabase = createClient<Database>(url, anonKey);
 
   const subjectId = await resolveDemoSubjectId(supabase);
-  console.log(`Demo subject ${subjectId} — seeding 28 days ending ${today}.`);
+  console.log(`Demo subject ${subjectId} — seeding ${TOTAL_DAYS} days ending ${today}.`);
 
   const days = generateDays(subjectId, today);
   previewSnapshot(days, today);
   previewOutcomes(days, today);
   previewDevices(days);
   previewRecoveryTrends(days, today);
+  previewPatterns(days, today);
+  if (process.exitCode === 1) {
+    console.error('Aborting real seed: pattern-candidate assertions failed (see above).');
+    return;
+  }
   await writeDays(supabase, days, subjectId);
   await writeDeviceBatches(supabase, days, subjectId);
 

@@ -65,6 +65,7 @@ const UNLOCK_LABEL: Record<UnlockKey, string> = {
   acwr_provisional: 'ACWR provisional',
   acwr_full: 'ACWR completo',
   baselines: 'Baselines personales',
+  patterns: 'Patrones',
 };
 
 function flagText(flag: EngineFlag): string {

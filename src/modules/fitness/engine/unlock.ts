@@ -4,7 +4,13 @@
  * countdown ("N días más de registro").
  */
 
-export type UnlockKey = 'acute_load' | 'monotony' | 'acwr_provisional' | 'acwr_full' | 'baselines';
+export type UnlockKey =
+  | 'acute_load'
+  | 'monotony'
+  | 'acwr_provisional'
+  | 'acwr_full'
+  | 'baselines'
+  | 'patterns';
 
 export type UnlockState = {
   key: UnlockKey;
@@ -19,6 +25,7 @@ export const UNLOCK_THRESHOLDS: Record<UnlockKey, number> = {
   acwr_provisional: 14, // calendar days of history
   acwr_full: 28, // calendar days of history
   baselines: 7, // recorded check-ins (count, not calendar)
+  patterns: 56, // calendar days of history (V2.3 ADR-025): horizon where weekly binary exposures reach n≈8
 };
 
 export function unlockStates(historyDays: number, checkinCount: number): UnlockState[] {
@@ -28,6 +35,7 @@ export function unlockStates(historyDays: number, checkinCount: number): UnlockS
     acwr_provisional: historyDays,
     acwr_full: historyDays,
     baselines: checkinCount,
+    patterns: historyDays,
   };
   return (Object.keys(UNLOCK_THRESHOLDS) as UnlockKey[]).map((key) => {
     const remaining = Math.max(0, UNLOCK_THRESHOLDS[key] - progress[key]);

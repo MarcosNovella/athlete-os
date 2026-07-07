@@ -1,5 +1,6 @@
 // Relative import: this pure module is also consumed by scripts/ outside Next (ADR-016).
 import { addDaysIso } from '../../../lib/dates';
+import { sampleSd } from './stats';
 
 /**
  * Training-load math (ADR-012). Pure functions over daily series.
@@ -93,14 +94,6 @@ export function formatDeltaPct(deltaPct: number): string {
   if (deltaPct > 0) return `▲ +${deltaPct}%`;
   if (deltaPct < 0) return `▼ ${Math.abs(deltaPct)}%`;
   return '= 0%';
-}
-
-/** Sample standard deviation (n-1); null for fewer than 2 points. */
-function sampleSd(values: readonly number[]): number | null {
-  if (values.length < 2) return null;
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (values.length - 1);
-  return Math.sqrt(variance);
 }
 
 /** Foster monotony: weekly mean daily load / SD. Null when SD is 0 (undefined). */

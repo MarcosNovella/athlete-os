@@ -13,6 +13,7 @@ import {
   strain,
 } from './load';
 import type { ObservationLite } from './snapshot';
+import { aggregateByDate } from './stats';
 import { UNLOCK_THRESHOLDS } from './unlock';
 
 /**
@@ -156,21 +157,6 @@ function computeRecovery(
     restingHr: series('resting_hr'),
     sleepDevice: series('sleep_device'),
   };
-}
-
-function aggregateByDate(
-  points: ReadonlyArray<DatedValue>,
-  combine: (values: number[]) => number,
-): DatedValue[] {
-  const byDate = new Map<string, number[]>();
-  for (const p of points) {
-    const bucket = byDate.get(p.date);
-    if (bucket) bucket.push(p.value);
-    else byDate.set(p.date, [p.value]);
-  }
-  return [...byDate.entries()]
-    .map(([date, values]) => ({ date, value: combine(values) }))
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
 const maxOf = (values: number[]): number => Math.max(...values);

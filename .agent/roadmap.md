@@ -2,7 +2,9 @@
 # Status: §A SHIPPED as ADR-022 (2026-07-02, session 8). §B's V2.1 OUTCOMES slice SHIPPED
 # as ADR-023 (2026-07-03, session 10). §B's V2.2 PASSIVE INPUTS slice SHIPPED as ADR-024
 # (2026-07-03, session 11) — Whoop connector fixture-validated, real OAuth pending device
-# arrival (see skills.md ritual). V2.3 (pattern candidates) still DISCUSSED, not an ADR yet.
+# arrival (see skills.md ritual). §B's V2.3 PATTERN CANDIDATES slice SHIPPED as ADR-025
+# (2026-07-07, session 13, branch feat/v2.3-pattern-candidates) — /patrones 5th tab +
+# coach briefing section, 56d unlock, not yet merged to main (awaiting Marcos's go).
 # §C methodology active.
 # Constraint that orders everything: DoD gate = 4-week capture habit. Nothing may ADD
 # capture friction until the habit is proven. Interpretation first, passive data second,
@@ -60,10 +62,13 @@ Proposed order (signal-per-friction):
   OAuth2 connector, fixture-validated, env-gated "Próximamente" until devices arrive
   (WHOOP_CLIENT_ID/SECRET/REDIRECT_URI unset). Device sleep prefills (not replaces) the
   manual check-in field. Surfaced in Tendencias "Recuperación", briefing, glossary.
-- V2.3 PATTERN CANDIDATES engine: deterministic lagged associations over the spine
-  (e.g. sleep<media → next-day readiness; monotony↑ → readiness trend), with effect size +
-  n + confounder caveats, feeding /coach which labels them as HYPOTHESES (ADR-003 contract:
-  code computes, LLM interprets). Needs ~8+ weeks of real data — lands naturally after DoD.
+- V2.3 PATTERN CANDIDATES — SHIPPED as ADR-025 (2026-07-07): binned-comparison + Cohen's d
+  + Spearman-concordance-veto engine over a curated ~15-pair grid (sleep, alcohol/caffeine,
+  training load, recovery→performance), lag-0 joins, 56d unlock (n≈8 horizon), top-3
+  surfaced with effect + n + confounder caveats on a new /patrones tab and in the coach
+  briefing (same statement builder, ADR-016 same-story invariant), feeding /coach which
+  may label a candidate as a HYPOTHESIS citing exact effect+n, never as cause (ADR-003
+  contract: code computes, LLM interprets). Compute-on-read, never persisted (ADR-014).
 - Nutrition: do NOT build macro logging (highest-friction, highest-abandonment domain).
   Ordinal in the check-in — SHIPPED as part of ADR-023 (2026-07-03): 1-tap "¿comiste
   acorde?" 1–5 + alcohol/caffeine booleans. Full nutrition only if a hypothesis demands it.

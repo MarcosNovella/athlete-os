@@ -26,7 +26,13 @@ mix contexts). Real users need ~1wk of data before the first meaningful run; the
 always works. The skill's raw-data SQL hardcodes an explicit `metric_key in (...)` allowlist
 mirroring ENGINE_METRICS (src/modules/fitness/engine/service.ts) — ANY new engine metric
 (e.g. V2.1 outcomes, ADR-023) must be added there too, or it silently vanishes from every
-future briefing with no error.
+future briefing with no error. Once a subject has ~90 days of history, step 2's SQL result
+can exceed the Supabase MCP tool's inline-output size limit — it still saves the full result
+to a file (path given in the error), but the JSON is wrapped in the tool's own
+`{"result":"...untrusted-data..."}` envelope with escaped quotes; extract the actual `raw`
+payload with a small Node script (`JSON.parse` the outer file, slice `[{` … `}]` out of
+`.result`, `JSON.parse` that, take `rows[0].raw`) rather than hand-editing it, then feed
+that clean JSON to `pnpm briefing`.
 
 ## deploy
 Goal: ship to production. Since ADR-021: push to `main` = auto prod deploy (Vercel git

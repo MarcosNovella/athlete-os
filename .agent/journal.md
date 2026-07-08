@@ -242,3 +242,147 @@ Merge gate PENDING: branch pushed, Vercel preview not yet requested — Marcos t
 before merge (per house style, no auto-merge without explicit approval).
 
 > HARVESTED through Session 11 (2026-07-03) on 2026-07-03 → 0 ADRs (ADR-024 already filed inline), 1 playbook (whoop-device-arrival, already added inline in M5), 1 candidate (C-013, new, seen_in 1 — not promotable), 0 memories
+
+## Session 12 — 2026-07-07 — Planning-only: Apple sleep bug root-caused, V2.3 designed end-to-end
+
+Arc: Marcos reported the real Watch S10 Apple Health export showing a sleep problem in
+Tendencias > Recuperación (not pinned down at report time). Root-caused with SQL evidence:
+his subject had 28 `sleep_device` rows ALL `value=0` across 2026-06-03→07-03, while
+`hrv_sdnn`/`resting_hr` from the SAME import were fine. Cause: `hae.ts`'s
+`numericField(point, ['asleep','totalSleep'])` picks the first FINITE number — real
+Watch S10 stage-based exports carry a literal `asleep: 0` on EVERY entry (with the real
+total in `totalSleep` + a core/deep/rem/awake breakdown), so 0 (finite) always won.
+Fix strategy chosen (not yet implemented): prefer `totalSleep`, strictly-positive-only,
+fall back to summing the stage breakdown, skip all-zero rows; also fix a latent bug
+where same-day sleep segments were being AVERAGED instead of SUMMED (nights + naps).
+Data repair = re-upload the same file after deploy (import RPC upsert overwrites).
+
+Then planned V2.3 (roadmap §B pattern candidates) end to end via AskUserQuestion with
+Marcos: binned comparison (below/above own 28d baseline, or binary) as the PRIMARY
+signal + Cohen's d for magnitude + a Spearman rank-correlation concordance veto as a
+dead-zone check (not an extra magnitude gate); NEW dedicated `/patrones` 5th tab (not
+folded into Tendencias); all 4 pair families (~15-pair curated grid: sleep, alcohol/
+caffeine, training load, recovery→performance); alcohol/caffeine toggles read as
+"previous night" so their flagship joins are LAG 0; 56-day unlock (n≈8 horizon for
+weekly binary exposures); compute-on-read, NEVER persisted (ADR-014 spirit); 84-day
+seed narrative with planted associations + a genuine negative control (caffeine) +
+a mechanically-asserting dry-run. Hydration error #418 on "/" (flagged 3 sessions
+running, never fixed) folded into the plan as M0b — pre-analysis ruled out
+TodayStatePanel/InfoTip/Hero as pure RSC (the minified prod stack trace blaming them
+isn't proof); real suspects narrowed to CheckInForm/SessionForm/OfflineSync or a
+browser extension, to be settled by reproducing in dev mode (full React diff) rather
+than guessing further.
+
+Plan approved at plans\c-users-marcos-downloads-healthautoexpo-humming-parasol.md.
+No code touched this session — planning only, per Marcos's session-9-established
+"plan-only, then execute separately" preference for larger features.
+
+## Session 13 — 2026-07-07 — /execute: V2.3 pattern candidates shipped end-to-end, M0-M6, merged + deployed
+
+Arc: executed the full V2.3 plan on `feat/v2.3-pattern-candidates` via /execute, one
+commit per milestone, every milestone verify-GREEN (159→198 tests), then merged to
+main (fast-forward) and pushed on Marcos's explicit "si hacelo" — auto-deployed clean.
+
+M0: `hae.ts` fixed per the S12 diagnosis — `positiveNumericField(['totalSleep','asleep'])`
+then stage-sum fallback then skip; same-day sleep accumulation changed from average to
+SUM (nights+naps). 5 new tests incl. the exact real-S10 shape (`asleep:0` + `totalSleep`
++ stage breakdown) and an all-zero-row-skipped case.
+
+M0b: hydration #418 root-caused FOR REAL by reproducing in dev mode rather than
+guessing — not a timing issue, not CheckInForm/SessionForm/OfflineSync, not a browser
+extension. `Hero`/`Stat`/the ACWR block wrapped their label row in a `<p>`, and
+`InfoTip`'s popover renders a `<div>` (containing further `<p>`s) as a sibling — `<div>`/
+`<p>` are not valid `<p>` descendants per the HTML parsing algorithm, so the browser
+silently closes the `<p>` early, and the resulting DOM diverges from what React
+expects → the mismatch. Fixed by switching the three label wrappers to `<div>` (they
+were flex layout containers, not paragraph text, all along). Verified 0 console errors
+in dev; a 3-session-old open item finally closed with a real root cause instead of
+another "still open, still unfixed" flag.
+
+M1 (largest): new `engine/stats.ts` (mean/pooledSd/cohensD/spearmanRho/alignLagged,
+plus `sampleSd`/`aggregateByDate` MOVED from load.ts/trends.ts — behavior-identical,
+originals import back) and `engine/patterns.ts` (`computePatternCandidates`: the
+15-pair curated grid, below/above-baseline-or-binary binning, Cohen's d + a
+DIRECTION-NORMALIZED Spearman concordance veto — below_mean bins invert the expected
+diff/rho sign relationship vs above_mean/binary bins, a real correctness bug caught by
+hand-tracing the math BEFORE writing any test, not after a failure). Writing a genuine
+concordance-veto test case took real iteration: hand-constructed "obviously discordant"
+scenarios kept turning out concordant on paper (a real group-mean difference usually
+does correlate with the full-range rank relationship); the actual working case (large
+Cohen's d AND large raw diff, but rho landing inside the 0.1 dead zone) was found by
+trying several candidate predictor/outcome value sequences through the real function
+and inspecting the output, not by further hand algebra. 32 new tests (159→188).
+
+M2: `service.ts` `getPatternCandidates` (reuses the existing cached 90d observation
+fetch — `ENGINE_METRICS` already a verified superset, zero allowlist change needed);
+unlock boundary tests for the new 56d `patterns` key.
+
+M3: seed narrative extended 21d→84d in three blocks — days 1-21 untouched, days 22-77
+a NEW "planted era" (~12 LOW_SLEEP days, ~10 ALCOHOL days, each with a real hand-tuned
+effect size; caffeine kept a genuine uncoupled 50/50 negative control, carefully
+parity-balanced against the planted day-sets so it couldn't accidentally correlate),
+days 78-84 the original 28-day seed's overreach block reused VERBATIM (same generator
+functions, called with remapped local day indices) so all 3 V2.0 flags still fire on
+"today". `previewPatterns()` runs the REAL engine over the full narrative and
+mechanically asserts the planted signs + negative-control silence + surfaced-subset
+invariants, `process.exitCode=1` on failure — passed clean on the FIRST real attempt
+(the S12 hand-calibration of effect sizes paid off). Real seed run twice against the
+demo subject; verified via SQL 0 duplicate observation groups across 1341 rows
+(idempotent). `.env.local` lacked `SEED_EMAIL`/`SEED_PASSWORD` (sandbox blocks reading
+its contents even to list key names) — Marcos added them mid-session, then the real
+write succeeded.
+
+M4: `/patrones` page (5th tab) + `PatternsSection.tsx` rendering the 3 `PatternsData`
+states from props only (locked countdown / unlocked-empty / up to 3 candidate cards
+with an inline server-SVG "diff dumbbell" — two dots for bin means + n labels, zero
+client JS). Glossary gains patron/efecto/n. Verified in-browser on the demo user: 3
+candidates render with real statements + charts + InfoTips, 5 tabs fit at 375px with
+no wrapping, 0 console errors — though a stale Turbopack dev-cache duplicate-
+declaration warning appeared first and needed a dev-server restart to clear (G-012;
+tsc/vitest were already clean, proving it wasn't a real bug).
+
+M5: `briefing.ts` gains a "Candidatos de patrón" section using the SAME
+`formatCandidateEs` statement as the UI (ADR-016 same-story invariant) + instruction
+rule 7 (cite exact effect+n if promoting a candidate to HIPÓTESIS, never as cause).
+Wired into `/coach` page's existing `Promise.all` and `scripts/coach-briefing.ts`;
+SKILL.md step 4 gains a paragraph on citing candidate evidence in the insight's
+`evidence` jsonb. Verified `pnpm briefing` against the real demo subject's data (SQL-
+exported raw JSON, since the query result exceeded the tool's inline size limit and
+had to be extracted from the saved-to-disk artifact via a small Node script) prints
+the Candidatos section matching `/patrones` byte-for-byte.
+
+M6: full verify clean from a fresh state, seed dry-run re-confirmed, real users'
+locked path confirmed via SQL rather than login (marcosnovella99@ historyDays=35,
+thomas 6 — both correctly <56 and locked) since the sandbox has no way to obtain his
+real password, Coach page in-browser confirmed to render the section, ADR-025 +
+roadmap §B written, state.md checkpointed.
+
+Merge + deploy: Marcos approved ("si hacelo") — fast-forward merged to main, pushed
+(both main and the feature branch, matching the ADR-021 convention), auto-deploy
+READY within ~35s (dpl_GX34tVEDLsbhRMkwFxY9Gpsg79ye, aliased athlete-os-pink.vercel.app),
+smoke-checked via WebFetch (login page renders, no crash).
+
+M0 repair completion: Marcos re-uploaded his real 90-day HAE export at /fuentes
+post-deploy. SQL-verified: 73 `sleep_device` rows, 0 at value=0 (was 28/28 zero
+before the fix), range 0.3-10.25h — the low outliers (0.3h, 1.12h) read as real
+short/partial nights, not the old bug. Bug closed end-to-end: root-caused (S12) →
+fixed + tested (M0) → deployed (M6) → real-world data confirmed repaired.
+
+Errors → guardrails born:
+- [G-012] A long-running Turbopack dev server can falsely report "the name X is
+  defined multiple times" after cross-file refactors (moved/renamed exports) even
+  when a FRESH `tsc --noEmit` + `vitest run` are clean and the file has no actual
+  duplicate on disk — restart the dev server before investigating further. Caught
+  during M4's in-browser verification; wasted several minutes suspecting a real bug
+  in the M1 stats.ts/load.ts/trends.ts moves before grep + a server restart proved
+  it was stale HMR module-graph state, not code.
+
+Design note (not a guardrail, but worth keeping): the direction-normalized concordance
+check in patterns.ts (below_mean bins need `sign(diff) === -sign(rho)`, above_mean/
+binary need `sign(diff) === sign(rho)`) is easy to get backwards, and a naive "same
+sign" check silently breaks the veto for exactly the below_mean pairs (which is most
+of the flagship sleep pair). Caught by tracing the algebra before writing tests, not
+by a failing test — worth remembering that binned-vs-continuous sign conventions
+need this kind of manual derivation whenever this file is touched again.
+
+> HARVESTED through Session 13 (2026-07-07) on 2026-07-07 → 1 ADR (ADR-025, already filed inline), 1 playbook updated (weekly-coach-run gained a gotcha on extracting the raw JSON when a subject's SQL export exceeds the MCP tool's inline size limit), 1 candidate (C-014, new, seen_in 1 — not promotable), 0 memories (session-specific facts already captured in state.md/decisions.md)

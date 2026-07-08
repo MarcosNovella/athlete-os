@@ -2,20 +2,27 @@
 # Terse entries: ## <name> · goal · commands · gotchas. Harvested from journal episodes.
 
 ## seed-demo-data
-Goal: (re)build the 28-day synthetic history for the disposable demo subject (ADR-020).
-Commands: `pnpm seed -- --dry-run` (preview via the REAL computeSnapshot + computeTrends —
-validate narrative first, incl. an outcomes summary), then `pnpm seed` (needs SEED_EMAIL/
-SEED_PASSWORD in env or `.env.local`). Expected since V2.1 (ADR-023): 28 checkins / 23
-sessions / 324 observations (was 209); re-run is idempotent (same counts, 0 dupe groups);
-all unlocks open + all 3 flags fire; e1RM per-lift counts squat 3 / bench 3 / deadlift 1 /
-ohp 0 (exercises both the ≥2-points chart gate and its empty state).
+Goal: (re)build the 84-day synthetic history for the disposable demo subject (ADR-020,
+extended to 84d + planted pattern associations by ADR-025).
+Commands: `pnpm seed -- --dry-run` (preview via the REAL computeSnapshot + computeTrends +
+computePatternCandidates — validate narrative first, incl. outcomes/recovery/patterns
+summaries and mechanical pattern-candidate assertions), then `pnpm seed` (needs SEED_EMAIL/
+SEED_PASSWORD in env or `.env.local`). Expected since V2.3 (ADR-025): 84 checkins / 65
+sessions; three narrative blocks — days 1-21 original baseline, 22-77 the V2.3 "planted
+era" (~12 LOW_SLEEP + ~10 ALCOHOL days with a real effect, caffeine a genuine negative
+control), 78-84 the original overreach block reused verbatim; re-run is idempotent (0 dupe
+observation groups); all unlocks open incl. `patterns` (56d) + all 3 V2.0 flags fire;
+`previewPatterns()` asserts the planted associations surface as candidates with the
+correct sign and caffeine stays silent (exit 1 on failure).
 Gotchas: demo subject is demo@athleteos.app (disposable; NEVER seed the real users — DoD
 clock). Auth user was SQL-seeded → if recreating it, follow G-007 (token cols = '', identities
-row). Extending the narrative per feature is the V2 methodology (roadmap §C). The subject
-accumulates history across session days (rolling 28d window) — manual in-app testing against
-it leaves stray rows with non-deterministic ids; clean them up via SQL if they pollute a
-demo/screenshot (harmless to the seed's own idempotency check, which only reasons about ITS
-OWN deterministic ids).
+row). Extending the narrative per feature is the V2 methodology (roadmap §C) — when adding a
+new block, keep any REUSED generator functions on their original relative day math (don't
+just pass them the new global day index) or their internal day-keyed logic (bump pivots,
+named-lift/match days, etc.) silently breaks. The subject accumulates history across session
+days (rolling window) — manual in-app testing against it leaves stray rows with non-
+deterministic ids; clean them up via SQL if they pollute a demo/screenshot (harmless to the
+seed's own idempotency check, which only reasons about ITS OWN deterministic ids).
 
 ## weekly-coach-run
 Goal: weekly synthesis at $0 (ADR-016). Use the /coach repo skill — it fetches spine data via

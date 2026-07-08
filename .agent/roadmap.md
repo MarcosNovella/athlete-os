@@ -3,9 +3,8 @@
 # as ADR-023 (2026-07-03, session 10). §B's V2.2 PASSIVE INPUTS slice SHIPPED as ADR-024
 # (2026-07-03, session 11) — Whoop connector fixture-validated, real OAuth pending device
 # arrival (see skills.md ritual). §B's V2.3 PATTERN CANDIDATES slice SHIPPED as ADR-025
-# (2026-07-07, session 13, branch feat/v2.3-pattern-candidates) — /patrones 5th tab +
-# coach briefing section, 56d unlock, not yet merged to main (awaiting Marcos's go).
-# §C methodology active.
+# (2026-07-07, session 13) — /patrones 5th tab + coach briefing section, 56d unlock;
+# merged to main and deployed to prod (2026-07-07). §C methodology active.
 # Constraint that orders everything: DoD gate = 4-week capture habit. Nothing may ADD
 # capture friction until the habit is proven. Interpretation first, passive data second,
 # manual capture last.
